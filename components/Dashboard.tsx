@@ -4,6 +4,14 @@ import React from 'react';
 import SideNav from '../components/SideNav';
 import { Calendar, Users, Star } from 'lucide-react';
 
+interface JobRowProps {
+  name: string;
+  overdue: number;
+  nextWeek: number;
+  laterWeeks: number;
+  total: number;
+}
+
 const DashboardHeader = () => (
   <header className="bg-white shadow-sm">
     <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
@@ -17,7 +25,7 @@ const DashboardHeader = () => (
   </header>
 );
 
-const JobRow = ({ name, overdue, nextWeek, laterWeeks, total }) => (
+const JobRow: React.FC<JobRowProps> = ({ name, overdue, nextWeek, laterWeeks, total }) => (
   <div className="flex items-center border-b py-2">
     <input type="checkbox" className="mr-2" />
     <Star className="mr-2 text-gray-400" />
