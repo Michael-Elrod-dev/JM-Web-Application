@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-const AnimatedAuthForm = () => {
+const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
 
@@ -85,11 +85,11 @@ const AnimatedAuthForm = () => {
           onClick={toggleForm}
           className="w-full bg-blue-600 text-white py-2 rounded-md shadow-sm hover:bg-blue-700 transition duration-300"
         >
-          {isLogin ? 'Switch to Signup' : 'Switch to Login'}
+          {isLogin ? 'Signup' : 'Back'}
         </button>
       </div>
     </div>
   );
 };
 
-export default AnimatedAuthForm;
+export default Login;

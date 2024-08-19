@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Work_Sans } from "next/font/google";
 import "./globals.css";
-import SideNav from '../components/SideNav';
+import SideBar from '../components/SideBar';
 
 const workSans = Work_Sans({ 
   subsets: ["latin"],
@@ -23,8 +23,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${workSans.variable} font-sans min-h-screen`}>
         <div className="flex min-h-screen">
-          <SideNav />
-          <div className="flex-1 p-8">
+          <SideBar />
+          <div className="flex-1 ml-12 p-8">
             {children}
           </div>
         </div>

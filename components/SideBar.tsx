@@ -3,9 +3,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Home, Briefcase, Heart, User, Settings } from 'lucide-react';
 
-const SideNav = () => {
+const SideBar = () => {
   return (
-    <nav className="w-12 h-screen p-4 flex flex-col items-center justify-between" style={{ backgroundColor: '#2E2E2E' }}>
+    <nav className="fixed left-0 top-0 w-12 h-screen p-4 flex flex-col items-center justify-between" style={{ backgroundColor: '#2E2E2E' }}>
       <div className="flex flex-col items-center space-y-8">
         <div className="mb-4">
           <Image
@@ -54,4 +54,4 @@ const SideNav = () => {
   );
 };
 
-export default SideNav;
+export default SideBar;

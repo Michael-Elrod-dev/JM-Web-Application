@@ -1,0 +1,16 @@
+src/
+├── app/
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── layout/
+│   │   ├── layout.tsx
+│   │   └── sidebar.tsx
+│   └── auth/
+│       ├── loginform.tsx
+│       └── signupform.tsx
+├── styles/
+│   └── globals.css
+└── utils/
+    └── (for utility functions)
+    
