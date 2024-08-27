@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import HeaderTabs from './HeaderTabs';
+import JobFrame from './JobFrame';
+import ContactCard from './ContactCard';
 
 interface JobData {
   id: string;
@@ -9,6 +11,13 @@ interface JobData {
   overdue: number;
   nextWeek: number;
   laterWeeks: number;
+}
+
+interface ContactData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
 }
 
 const Header: React.FC<{ title: string; tabs: { name: string; href: string }[]; activeTab: string; setActiveTab: (tabName: string) => void }> = ({ title, tabs, activeTab, setActiveTab }) => {
@@ -33,36 +42,22 @@ const Header: React.FC<{ title: string; tabs: { name: string; href: string }[]; 
   );
 };
 
-const JobFrame: React.FC<JobData> = ({ name, overdue, nextWeek, laterWeeks }) => {
-  const total = overdue + nextWeek + laterWeeks;
-
-  return (
-    <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-4">
-      <div className="px-4 py-5 sm:p-6 flex items-center">
-        <input type="checkbox" className="mr-4" />
-        <div className="flex-1">
-          <h3 className="text-lg font-medium text-gray-900 mr-4">{name}</h3>
-        </div>
-        <div className="flex-1 flex">
-          <div className="bg-red-500 flex justify-center items-center text-white" style={{ width: `${(overdue / total) * 100}%`, height: '20px' }}>
-            {overdue}
-          </div>
-          <div className="bg-yellow-500 flex justify-center items-center text-white" style={{ width: `${(nextWeek / total) * 100}%`, height: '20px' }}>
-            {nextWeek}
-          </div>
-          <div className="bg-green-500 flex justify-center items-center text-white" style={{ width: `${(laterWeeks / total) * 100}%`, height: '20px' }}>
-            {laterWeeks}
-          </div>
-        </div>
-        <span className="ml-4">{total}</span>
-      </div>
-    </div>
-  );
-};
-
 const OverviewTab: React.FC<{ jobs: JobData[] }> = ({ jobs }) => (
   <div>
-    <h2 className="text-2xl font-semibold text-gray-900 mb-4">Active Jobs</h2>
+    <div className="flex justify-center items-center space-x-6 mb-6">
+      <div className="flex items-center">
+        <div className="w-4 h-4 bg-red-500 mr-2"></div>
+        <span className="text-gray-600">Overdue</span>
+      </div>
+      <div className="flex items-center">
+        <div className="w-4 h-4 bg-yellow-500 mr-2"></div>
+        <span className="text-gray-600">&gt; 7 days</span>
+      </div>
+      <div className="flex items-center">
+        <div className="w-4 h-4 bg-green-500 mr-2"></div>
+        <span className="text-gray-600">Next 7 days</span>
+      </div>
+    </div>
     {jobs.map((job) => (
       <JobFrame key={job.id} {...job} />
     ))}
@@ -76,12 +71,32 @@ const CalendarTab: React.FC = () => (
   </div>
 );
 
-const ContactsTab: React.FC = () => (
-  <div>
-    <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contacts</h2>
-    <p>Contacts content goes here.</p>
-  </div>
-);
+const ContactsTab: React.FC = () => {
+  const [contacts, setContacts] = useState<ContactData[]>([]);
+
+  useEffect(() => {
+    // Simulating fetching data from a database
+    const fetchContacts = async () => {
+      // Replace this with your actual data fetching logic
+      const data: ContactData[] = [
+        { id: '1', name: 'John Doe', email: 'john@example.com', phone: '(123) 456-7890' },
+        { id: '2', name: 'Jane Smith', email: 'jane@example.com', phone: '(234) 567-8901' },
+        { id: '3', name: 'Bob Johnson', email: 'bob@example.com', phone: '(345) 678-9012' },
+      ];
+      setContacts(data);
+    };
+
+    fetchContacts();
+  }, []);
+
+  return (
+    <div>
+      {contacts.map((contact) => (
+        <ContactCard key={contact.id} {...contact} />
+      ))}
+    </div>
+  );
+};
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Overview');

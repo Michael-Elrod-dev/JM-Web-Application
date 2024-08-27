@@ -1,9 +1,14 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Home, Briefcase, Heart, User, Settings } from 'lucide-react';
+import Image from 'next/image';
 
 const SideBar = () => {
+  const router = useRouter();
+  
   return (
     <nav className="fixed left-0 top-0 w-12 h-screen p-4 flex flex-col items-center justify-between" style={{ backgroundColor: '#2E2E2E' }}>
       <div className="flex flex-col items-center space-y-8">
@@ -18,9 +23,9 @@ const SideBar = () => {
         </div>
         <ul className="space-y-8">
           <li>
-            <Link href="/" className="text-gray-300 hover:text-white">
-              <Home size={28} />
-            </Link>
+          <Link href="/dashboard" className="text-gray-300 hover:text-white">
+  <Home size={28} />
+</Link>
           </li>
           <li>
             <Link href="/jobs" className="text-gray-300 hover:text-white">
@@ -44,9 +49,9 @@ const SideBar = () => {
             </Link>
           </li>
           <li>
-            <Link href="/settings" className="text-gray-300 hover:text-white">
-              <Settings size={28} />
-            </Link>
+          <button onClick={() => router.push('/settings')} className="text-gray-300 hover:text-white">
+          <Settings size={28} />
+        </button>
           </li>
         </ul>
       </div>

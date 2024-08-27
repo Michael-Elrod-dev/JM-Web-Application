@@ -20,6 +20,7 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }
   }, [activeTab]);
 
   return (
+    <div className="mt-6">
     <div className="flex relative">
       {tabs.map((tab) => (
         <a
@@ -50,6 +51,7 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }
           }}
         />
       )}
+    </div>
     </div>
   );
 };
