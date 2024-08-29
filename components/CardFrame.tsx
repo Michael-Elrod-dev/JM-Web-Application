@@ -9,7 +9,7 @@ interface CardFrameProps {
 
 const CardFrame: React.FC<CardFrameProps> = ({ children, className = '' }) => {
   return (
-    <div className={`bg-white shadow-md overflow-hidden sm:rounded-lg mb-4 ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg mb-4 ${className}`}>
       <div className="px-4 py-5 sm:p-6">
         {children}
       </div>
