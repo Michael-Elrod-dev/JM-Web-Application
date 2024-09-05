@@ -21,37 +21,37 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }
 
   return (
     <div className="mt-6">
-    <div className="flex relative">
-      {tabs.map((tab) => (
-        <a
-          key={tab.name}
-          id={`tab-${tab.name}`}
-          href={tab.href}
-          className={`
-            px-6 py-2 
-            ${activeTab === tab.name 
-              ? 'text-gray-900 font-medium' 
-              : 'text-gray-500 hover:text-gray-900'
-            }
-          `}
-          onClick={(e) => {
-            e.preventDefault();
-            setActiveTab(tab.name);
-          }}
-        >
-          {tab.name}
-        </a>
-      ))}
-      {activeTabElement && (
-        <div
-          className="absolute bottom-0 h-0.5 bg-gray-900 transition-all duration-300"
-          style={{
-            left: `${activeTabElement.offsetLeft}px`,
-            width: `${activeTabElement.offsetWidth}px`,
-          }}
-        />
-      )}
-    </div>
+      <div className="flex relative">
+        {tabs.map((tab) => (
+          <a
+            key={tab.name}
+            id={`tab-${tab.name}`}
+            href={tab.href}
+            className={`
+              px-6 py-2 transition-opacity duration-200
+              ${activeTab === tab.name 
+                ? 'opacity-100 font-medium' 
+                : 'opacity-60 hover:opacity-80'
+              }
+            `}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab(tab.name);
+            }}
+          >
+            {tab.name}
+          </a>
+        ))}
+        {activeTabElement && (
+          <div
+            className="absolute bottom-0 h-0.5 bg-current transition-all duration-300"
+            style={{
+              left: `${activeTabElement.offsetLeft}px`,
+              width: `${activeTabElement.offsetWidth}px`,
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };

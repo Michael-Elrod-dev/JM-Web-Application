@@ -19,7 +19,7 @@ const JobFrame: React.FC<JobData> = ({ name, overdue, nextWeek, laterWeeks }) =>
       <div className="flex items-center">
         <input type="checkbox" className="mr-4" />
         <div className="w-1/4">
-          <h3 className="text-lg font-medium text-gray-900 truncate">{name}</h3>
+          <h3 className="text-lg font-medium truncate">{name}</h3>
         </div>
         <div className="flex-1 flex items-center">
           <div className="flex-1 flex mr-4">

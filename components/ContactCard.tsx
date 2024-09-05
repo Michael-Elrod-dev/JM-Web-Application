@@ -16,9 +16,9 @@ const ContactCard: React.FC<ContactData> = ({ name, email, phone }) => {
       <div className="flex items-center">
         <input type="checkbox" className="mr-4" />
         <div className="flex-1">
-          <h3 className="text-lg font-medium text-gray-900">{name}</h3>
-          <p className="text-sm text-gray-500">{email}</p>
-          <p className="text-sm text-gray-500">{phone}</p>
+          <h3 className="text-lg font-medium">{name}</h3>
+          <p className="text-sm">{email}</p>
+          <p className="text-sm">{phone}</p>
         </div>
       </div>
     </CardFrame>

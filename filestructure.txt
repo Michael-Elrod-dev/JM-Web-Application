@@ -1,16 +1,22 @@
 src/
 ├── app/
+│   └── dashboard/
+│       └── page.tsx
+│   └── jobs/
+│       └── page.tsx
+│   └── settings/
+│       └── page.tsx
 │   ├── layout.tsx
+│   ├── providers.tsx
 │   └── page.tsx
 ├── components/
-│   ├── layout/
-│   │   ├── layout.tsx
-│   │   └── sidebar.tsx
-│   └── auth/
-│       ├── loginform.tsx
-│       └── signupform.tsx
-├── styles/
-│   └── globals.css
-└── utils/
-    └── (for utility functions)
+│   ├── CardFrame/
+│   ├── ContactCard/
+│   ├── DarkModeToggle/
+│   ├── Dashboard/
+│   ├── HeaderTabs/
+│   ├── JobFrame/
+│   ├── Login/
+│   ├── Settings/
+│   └── SideBar/
     
