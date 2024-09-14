@@ -2,9 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Home, Briefcase, Heart, User, Settings } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { FaHome, FaBriefcase, FaHeart, FaUser, FaCog } from "react-icons/fa";
+
 
 const SideBar = () => {
   const router = useRouter();
@@ -27,17 +28,17 @@ const SideBar = () => {
         <ul className="space-y-8">
           <li>
             <Link href="/dashboard" className="text-gray-300 hover:text-white">
-              <Home size={28} />
+              <FaHome size={28} />
             </Link>
           </li>
           <li>
             <Link href="/jobs" className="text-gray-300 hover:text-white">
-              <Briefcase size={28} />
+              <FaBriefcase size={28} />
             </Link>
           </li>
           <li>
             <Link href="/favorites" className="text-gray-300 hover:text-white">
-              <Heart size={28} />
+              <FaHeart size={28} />
             </Link>
           </li>
         </ul>
@@ -48,7 +49,7 @@ const SideBar = () => {
         <ul className="space-y-4">
           <li>
             <Link href="/profile" className="text-gray-300 hover:text-white">
-              <User size={28} />
+              <FaUser size={28} />
             </Link>
           </li>
           <li>
@@ -56,7 +57,7 @@ const SideBar = () => {
               onClick={() => router.push("/settings")}
               className="text-gray-300 hover:text-white"
             >
-              <Settings size={28} />
+              <FaCog size={28} />
             </button>
           </li>
         </ul>

@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import JobButton from "../../components/JobButton";
 import HeaderTabs from "../../components/HeaderTabs";
+import NewJobFrame from "../../components/NewJobFrame";
 import LargeJobFrame from "../../components/LargeJobFrame";
+import { FaPlus } from 'react-icons/fa';
 
 interface HeaderProps {
   title: string;
@@ -16,6 +19,8 @@ const Header: React.FC<HeaderProps> = React.memo(({ title, tabs, activeTab, setA
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
+    const currentRef = headerRef.current;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsScrolled(!entry.isIntersecting);
@@ -23,21 +28,21 @@ const Header: React.FC<HeaderProps> = React.memo(({ title, tabs, activeTab, setA
       { threshold: [1] }
     );
 
-    if (headerRef.current) {
-      observer.observe(headerRef.current);
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (headerRef.current) {
-        observer.unobserve(headerRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-10 transition-all duration-300 bg-white dark:bg-gray-900">
+    <header ref={headerRef} className="sticky top-0 z-10 transition-all bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-        <h1 className={`text-3xl font-bold mb-3 transition-all duration-300 ${
+        <h1 className={`text-3xl font-bold mb-3 transition-all ${
             isScrolled ? "opacity-0 h-0" : "opacity-100 h-auto"
           }`}
         >
@@ -52,7 +57,6 @@ const Header: React.FC<HeaderProps> = React.memo(({ title, tabs, activeTab, setA
     </header>
   );
 });
-
 Header.displayName = "Header";
 
 const ActiveTab = React.memo(() => (
@@ -131,7 +135,6 @@ const ActiveTab = React.memo(() => (
     />
   </div>
 ));
-
 ActiveTab.displayName = "ActiveTab";
 
 const ClosedTab = React.memo(() => (
@@ -156,14 +159,48 @@ const ClosedTab = React.memo(() => (
     />
   </div>
 ));
-
 ClosedTab.displayName = "ClosedTab";
 
-const NewTab = React.memo(() => (
-  <div>
-  </div>
-));
+const NewTab = React.memo(() => {
+  const handleAddPhase = () => {
+    console.log('Add a Phase clicked');
+    // Logic to add a new phase
+  };
 
+  const handleCreate = () => {
+    console.log('Create clicked');
+    // Logic to create the job (e.g., send data to API)
+  };
+
+  const handleCancel = () => {
+    console.log('Cancel clicked');
+    // Logic to reset all fields
+  };
+
+  return (
+    <div className="mx-auto space-y-4">
+      <NewJobFrame />
+      <div className="flex space-x-4 mt-4">
+        <JobButton
+          title="Add a Phase"
+          icon={FaPlus}
+          onClick={handleAddPhase}
+          color="default"
+        />
+        <JobButton
+          title="Create"
+          onClick={handleCreate}
+          color="green"
+        />
+        <JobButton
+          title="Cancel"
+          onClick={handleCancel}
+          color="red"
+        />
+      </div>
+    </div>
+  );
+});
 NewTab.displayName = "NewTab";
 
 const RecycleBinTab = React.memo(() => (
@@ -188,7 +225,6 @@ const RecycleBinTab = React.memo(() => (
     />
   </div>
 ));
-
 RecycleBinTab.displayName = "RecycleBinTab";
 
 export default function JobsPage() {

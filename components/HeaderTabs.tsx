@@ -27,13 +27,9 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }
             key={tab.name}
             id={`tab-${tab.name}`}
             href={tab.href}
-            className={`
-              px-6 py-2 transition-opacity duration-200
-              ${activeTab === tab.name 
-                ? 'opacity-100 font-medium' 
-                : 'opacity-60 hover:opacity-80'
-              }
-            `}
+            className={`px-6 py-2 ${
+              activeTab === tab.name ? 'text-current font-medium' : 'text-opacity-60 hover:text-opacity-80'
+            }`}
             onClick={(e) => {
               e.preventDefault();
               setActiveTab(tab.name);
@@ -44,7 +40,7 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }
         ))}
         {activeTabElement && (
           <div
-            className="absolute bottom-0 h-0.5 bg-current transition-all duration-300"
+            className="absolute bottom-0 h-0.5 bg-current transition-all ease-in-out"
             style={{
               left: `${activeTabElement.offsetLeft}px`,
               width: `${activeTabElement.offsetWidth}px`,

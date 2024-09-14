@@ -1,8 +1,8 @@
 "use client";
 
 import { useTheme } from 'next-themes';
-import { Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { FaMoon, FaSun } from "react-icons/fa";
 
 export default function DarkModeToggle() {
   const [mounted, setMounted] = useState(false);
@@ -23,9 +23,9 @@ export default function DarkModeToggle() {
       aria-label="Toggle dark mode"
     >
       {theme === 'dark' ? (
-        <Sun size={24} />
+        <FaSun size={24} />
       ) : (
-        <Moon size={24} />
+        <FaMoon size={24} />
       )}
     </button>
   );

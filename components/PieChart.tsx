@@ -34,32 +34,40 @@ const PieChart: React.FC<PieChartProps> = ({ overdue, sevenDaysPlus, nextSevenDa
     plugins: {
       legend: {
         position: 'bottom' as const,
+        labels: {
+          boxWidth: 15,
+          boxHeight: 15,
+          padding: 15,
+          color: (context: any) => {
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            return isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(107, 114, 128, 1)'; // White in dark mode, gray in light mode
+          },
+          font: {
+            size: 12,
+          },
+        },
       },
       tooltip: {
         callbacks: {
-            label: function(context: TooltipItem<'pie'>) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                return `${label}: ${value}`;
+          label: function(context: TooltipItem<'pie'>) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            return `${label}: ${value}`;
           }
         }
       },
       datalabels: {
         color: '#fff',
-        font: {
-          weight: 700,
-          size: 16,
-        },
+        font: { weight: 700, size: 16 },
         formatter: (value: number) => {
           return value > 0 ? value.toString() : '';
         },
       },
     },
-  };
+  };  
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <h3 style={{ textAlign: 'center', marginBottom: '10px' }}>Total Items: {totalItems}</h3>
+    <div className="w-full h-full">
       <Pie data={data} options={options} plugins={[ChartDataLabels]} />
     </div>
   );
