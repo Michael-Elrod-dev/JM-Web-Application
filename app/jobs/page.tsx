@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import JobButton from "../../components/JobButton";
 import HeaderTabs from "../../components/HeaderTabs";
 import NewJobFrame from "../../components/NewJobFrame";
 import LargeJobFrame from "../../components/LargeJobFrame";
-import { FaPlus } from 'react-icons/fa';
 
 interface HeaderProps {
   title: string;
@@ -162,42 +160,9 @@ const ClosedTab = React.memo(() => (
 ClosedTab.displayName = "ClosedTab";
 
 const NewTab = React.memo(() => {
-  const handleAddPhase = () => {
-    console.log('Add a Phase clicked');
-    // Logic to add a new phase
-  };
-
-  const handleCreate = () => {
-    console.log('Create clicked');
-    // Logic to create the job (e.g., send data to API)
-  };
-
-  const handleCancel = () => {
-    console.log('Cancel clicked');
-    // Logic to reset all fields
-  };
-
   return (
     <div className="mx-auto space-y-4">
       <NewJobFrame />
-      <div className="flex space-x-4 mt-4">
-        <JobButton
-          title="Add a Phase"
-          icon={FaPlus}
-          onClick={handleAddPhase}
-          color="default"
-        />
-        <JobButton
-          title="Create"
-          onClick={handleCreate}
-          color="green"
-        />
-        <JobButton
-          title="Cancel"
-          onClick={handleCancel}
-          color="red"
-        />
-      </div>
     </div>
   );
 });

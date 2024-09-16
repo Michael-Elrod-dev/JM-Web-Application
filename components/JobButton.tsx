@@ -8,9 +8,10 @@ interface JobButtonProps {
   icon?: IconType;
   onClick: () => void;
   color: 'green' | 'red' | 'default';
+  disabled?: boolean;
 }
 
-const JobButton: React.FC<JobButtonProps> = ({ title, icon: Icon, onClick, color }) => {
+const JobButton: React.FC<JobButtonProps> = ({ title, icon: Icon, onClick, color, disabled }) => {
   const getButtonColor = () => {
     switch (color) {
       case 'green':
@@ -25,7 +26,10 @@ const JobButton: React.FC<JobButtonProps> = ({ title, icon: Icon, onClick, color
   return (
     <button
       onClick={onClick}
-      className={`${getButtonColor()} w-40 h-10 text-white font-bold py-2 px-4 rounded flex items-center justify-center transition duration-300 ease-in-out`}
+      className={`${getButtonColor()} w-40 h-10 text-white font-bold py-2 px-4 rounded flex items-center justify-center transition duration-300 ease-in-out ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+      disabled={disabled}
     >
       {Icon && <Icon className="mr-2" size={16} />}
       <span className="whitespace-nowrap">{title}</span>
