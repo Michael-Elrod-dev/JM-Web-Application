@@ -66,9 +66,15 @@ const OverviewTab: React.FC<{ jobs: JobData[] }> = ({ jobs }) => (
 );
 
 const CalendarTab: React.FC = () => (
-  <div>
-    <h2 className="text-2xl font-semibold mb-4">Calendar</h2>
-    <p>Calendar content goes here.</p>
+  <div className="h-screen">
+    <iframe
+      src="https://calendar.google.com/calendar/embed?src=YOUR_CALENDAR_ID&ctz=YOUR_TIMEZONE"
+      style={{ border: 0 }}
+      width="100%"
+      height="100%"
+      frameBorder="0"
+      scrolling="no"
+    ></iframe>
   </div>
 );
 
