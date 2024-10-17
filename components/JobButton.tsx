@@ -19,7 +19,7 @@ const JobButton: React.FC<JobButtonProps> = ({ title, icon: Icon, onClick, color
       case 'red':
         return 'bg-red-500 hover:bg-red-600';
       default:
-        return 'bg-gray-500 hover:bg-gray-600 text-white';
+        return 'bg-zinc-500 hover:bg-zinc-600 text-white';
     }
   };
 

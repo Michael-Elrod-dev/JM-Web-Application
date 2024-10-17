@@ -1,4 +1,5 @@
 // components/PieChart.tsx
+"use client";
 
 import React from 'react';
 import { Pie } from 'react-chartjs-2';
@@ -40,7 +41,7 @@ const PieChart: React.FC<PieChartProps> = ({ overdue, sevenDaysPlus, nextSevenDa
           padding: 15,
           color: (context: any) => {
             const isDarkMode = document.documentElement.classList.contains('dark');
-            return isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(107, 114, 128, 1)'; // White in dark mode, gray in light mode
+            return isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(107, 114, 128, 1)'; // White in dark mode, zinc in light mode
           },
           font: {
             size: 12,

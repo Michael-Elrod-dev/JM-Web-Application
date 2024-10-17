@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 255, 255, 255;
@@ -16,4 +17,12 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.no-dark-mode-text {
+  color: white !important;
+}
+
+.dark .no-dark-mode-text {
+  color: white !important;
 }

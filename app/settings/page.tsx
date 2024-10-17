@@ -15,7 +15,7 @@ const SettingsHeader: React.FC<{ title: string }> = ({ title }) => {
 
 const SettingsForm: React.FC = () => {
   return (
-    <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg w-96">
+    <div className="bg-white dark:bg-zinc-800 p-8 rounded-lg shadow-lg w-96">
       <h2 className="text-2xl font-bold mb-6 text-center">Contact Information</h2>
       <form>
         <div className="mb-4">
@@ -24,7 +24,7 @@ const SettingsForm: React.FC = () => {
             type="text" 
             id="name" 
             placeholder="Joey Markowski"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" 
+            className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-400" 
           />
         </div>
         <div className="mb-4">
@@ -33,7 +33,7 @@ const SettingsForm: React.FC = () => {
             type="tel" 
             id="phone" 
             placeholder="870-213-5683"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" 
+            className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-400" 
           />
         </div>
         <div className="mb-6">
@@ -42,7 +42,7 @@ const SettingsForm: React.FC = () => {
             type="email" 
             id="email" 
             placeholder="joeymarkowski@hotmail.com"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" 
+            className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-400" 
           />
         </div>
         <button type="submit" className="w-full bg-green-500 text-white py-2 rounded-md shadow-sm hover:bg-green-600 transition duration-300 mb-3">Update</button>

@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${workSans.variable} font-sans min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white`}>
+      <body className={`${workSans.variable} font-sans min-h-screen bg-white dark:bg-zinc-900 text-black dark:text-white`}>
         <Providers>
           <div className="flex min-h-screen">
             <SideBar />

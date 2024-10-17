@@ -1,8 +1,12 @@
 src/
 ├── app/
-│   └── dashboard/
+│   └── calendar/
+│       └── page.tsx
+│   └── contacts/
 │       └── page.tsx
 │   └── jobs/
+│       ├── [id]/
+│       │   └── page.tsx
 │       └── page.tsx
 │   └── settings/
 │       └── page.tsx
@@ -19,4 +23,5 @@ src/
 │   ├── Login/
 │   ├── Settings/
 │   └── SideBar/
+ect.
     

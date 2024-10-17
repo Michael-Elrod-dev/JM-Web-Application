@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { Job, jobs } from "../../data/jobsData";
+import JobFrame from '../../components/JobFrame';
 import HeaderTabs from "../../components/HeaderTabs";
 import NewJobFrame from "../../components/NewJobFrame";
 import LargeJobFrame from "../../components/LargeJobFrame";
@@ -38,7 +40,7 @@ const Header: React.FC<HeaderProps> = React.memo(({ title, tabs, activeTab, setA
   }, []);
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-10 transition-all bg-white dark:bg-gray-900">
+    <header ref={headerRef} className="sticky top-0 z-10 transition-all bg-white dark:bg-zinc-900">
       <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
         <h1 className={`text-3xl font-bold mb-3 transition-all ${
             isScrolled ? "opacity-0 h-0" : "opacity-100 h-auto"
@@ -57,107 +59,37 @@ const Header: React.FC<HeaderProps> = React.memo(({ title, tabs, activeTab, setA
 });
 Header.displayName = "Header";
 
-const ActiveTab = React.memo(() => (
-  <div>
-    <LargeJobFrame
-      jobName="Home Renovation"
-      dateRange="8/8/24 - 2/15/25"
-      tasks={[
-        "Contact gas company for layout",
-        "Install new windows",
-        "Paint interior walls",
-      ]}
-      materials={[
-        "Contact plumber company for pipes",
-        "Order lumber",
-        "Purchase paint",
-      ]}
-      workers={["Michael Elrod", "Sarah Johnson", "Robert Lee"]}
-      overdue={3}
-      sevenDaysPlus={5}
-      nextSevenDays={7}
-    />
-    <LargeJobFrame
-      jobName="Office Building Construction"
-      dateRange="9/1/24 - 3/30/25"
-      tasks={[
-        "Pour foundation",
-        "Erect steel frame",
-        "Install electrical systems",
-      ]}
-      materials={[
-        "Order concrete",
-        "Schedule steel delivery",
-        "Purchase electrical components",
-      ]}
-      workers={["Emily Chen", "David Wilson", "Maria Garcia"]}
-      overdue={2}
-      sevenDaysPlus={8}
-      nextSevenDays={10}
-    />
-    <LargeJobFrame
-      jobName="Home Renovation"
-      dateRange="8/8/24 - 2/15/25"
-      tasks={[
-        "Contact gas company for layout",
-        "Install new windows",
-        "Paint interior walls",
-      ]}
-      materials={[
-        "Contact plumber company for pipes",
-        "Order lumber",
-        "Purchase paint",
-      ]}
-      workers={["Michael Elrod", "Sarah Johnson", "Robert Lee"]}
-      overdue={1}
-      sevenDaysPlus={6}
-      nextSevenDays={8}
-    />
-    <LargeJobFrame
-      jobName="Home Renovation"
-      dateRange="8/8/24 - 2/15/25"
-      tasks={[
-        "Contact gas company for layout",
-        "Install new windows",
-        "Paint interior walls",
-      ]}
-      materials={[
-        "Contact plumber company for pipes",
-        "Order lumber",
-        "Purchase paint",
-      ]}
-      workers={["Michael Elrod", "Sarah Johnson", "Robert Lee"]}
-      overdue={4}
-      sevenDaysPlus={3}
-      nextSevenDays={5}
-    />
-  </div>
-));
-ActiveTab.displayName = "ActiveTab";
+const JobTab: React.FC<{ status: Job['status']; searchQuery: string; setSearchQuery: (query: string) => void }> = React.memo(({ status, searchQuery, setSearchQuery }) => {
+  const searchTerms = searchQuery.split(',').map(term => term.trim().toLowerCase());
 
-const ClosedTab = React.memo(() => (
-  <div>
-    <LargeJobFrame
-      jobName="Home Renovation"
-      dateRange="8/8/24 - 2/15/25"
-      tasks={[
-        "Contact gas company for layout",
-        "Install new windows",
-        "Paint interior walls",
-      ]}
-      materials={[
-        "Contact plumber company for pipes",
-        "Order lumber",
-        "Purchase paint",
-      ]}
-      workers={["Michael Elrod", "Sarah Johnson", "Robert Lee"]}
-      overdue={4}
-      sevenDaysPlus={3}
-      nextSevenDays={5}
-    />
-  </div>
-));
-ClosedTab.displayName = "ClosedTab";
+  const filteredJobs = jobs
+    .filter(job => job.status === status)
+    .filter(job => 
+      searchTerms.length === 0 || 
+      searchTerms.some(term => job.jobName.toLowerCase().includes(term))
+    );
+
+  return (
+    <div>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search jobs (comma-separated for multiple)"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      {filteredJobs.map((job) => (
+        <LargeJobFrame 
+          key={job.id}
+          {...job} 
+      />
+    ))}
+    </div>
+  );
+});
+JobTab.displayName = "JobTab";
 
 const NewTab = React.memo(() => {
   return (
@@ -168,50 +100,107 @@ const NewTab = React.memo(() => {
 });
 NewTab.displayName = "NewTab";
 
-const RecycleBinTab = React.memo(() => (
-  <div>
-    <LargeJobFrame
-      jobName="Abandoned Warehouse Conversion"
-      dateRange="3/1/24 - 9/30/24"
-      tasks={[
-        "Structural assessment",
-        "Demolition of interior walls",
-        "New floor plan design",
-      ]}
-      materials={[
-        "Recycled materials",
-        "Eco-friendly insulation",
-        "Energy-efficient windows",
-      ]}
-      workers={["Ryan Peters", "Sophie Wong", "Marcus Johnson"]}
-      overdue={5}
-      sevenDaysPlus={0}
-      nextSevenDays={0}
-    />
-  </div>
-));
-RecycleBinTab.displayName = "RecycleBinTab";
+const OverviewTab: React.FC<{ setActiveTab: (tab: string) => void; setSearchQuery: (query: string) => void }> = ({ setActiveTab, setSearchQuery }) => {
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
+  const activeJobs = jobs.filter(job => job.status === 'active');
+
+  const filteredJobs = activeJobs.filter(job => 
+    job.jobName.toLowerCase().includes(localSearchQuery.toLowerCase())
+  );
+
+  const handleJobSelect = (jobId: string) => {
+    setSelectedJobs(prev => 
+      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
+    );
+  };
+
+  const handleViewSelected = () => {
+    if (selectedJobs.length > 0) {
+      const selectedJobNames = selectedJobs.map(id => 
+        jobs.find(job => job.id.toString() === id)?.jobName
+      ).filter(Boolean);
+      setActiveTab("Active");
+      setSearchQuery(selectedJobNames.join(', '));
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center space-x-4">
+        <div className="flex-grow">
+          <input
+            type="text"
+            placeholder="Search jobs..."
+            value={localSearchQuery}
+            onChange={(e) => setLocalSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <button 
+          onClick={handleViewSelected}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
+          disabled={selectedJobs.length === 0}
+        >
+          View Selected Jobs ({selectedJobs.length})
+        </button>
+      </div>
+
+      <div className="flex justify-center items-center space-x-6 mb-6">
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-red-500 mr-2"></div>
+          <span className="">Overdue</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-yellow-500 mr-2"></div>
+          <span className="">&gt; 7 days</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-green-500 mr-2"></div>
+          <span className="">Next 7 days</span>
+        </div>
+      </div>
+
+      {filteredJobs.map((job) => (
+        <JobFrame 
+          key={job.id}
+          id={job.id.toString()} 
+          name={job.jobName} 
+          overdue={job.overdue} 
+          nextWeek={job.nextSevenDays} 
+          laterWeeks={job.sevenDaysPlus} 
+          isSelected={selectedJobs.includes(job.id.toString())}
+          onSelect={handleJobSelect}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function JobsPage() {
-  const [activeTab, setActiveTab] = useState("Active");
+  const [activeTab, setActiveTab] = useState("Overview");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const headerTabs = [
+    { name: "Overview", href: "#" },
     { name: "Active", href: "#" },
     { name: "Closed", href: "#" },
-    { name: "New", href: "#" },
-    { name: "Recycle Bin", href: "#" },
+    { name: "Deleted", href: "#" },
+    { name: "Create New", href: "#" },
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case "Overview":
+        return <OverviewTab setActiveTab={setActiveTab} setSearchQuery={setSearchQuery} />;
       case "Active":
-        return <ActiveTab />;
+        return <JobTab status="active" searchQuery={searchQuery} setSearchQuery={setSearchQuery} />;
       case "Closed":
-        return <ClosedTab />;
-      case "New":
+        return <JobTab status="closed" searchQuery={searchQuery} setSearchQuery={setSearchQuery} />;
+      case "Deleted":
+        return <JobTab status="deleted" searchQuery={searchQuery} setSearchQuery={setSearchQuery} />;
+      case "Create New":
         return <NewTab />;
-      case "Recycle Bin":
-        return <RecycleBinTab />;
       default:
         return null;
     }

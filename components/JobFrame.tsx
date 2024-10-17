@@ -9,15 +9,26 @@ interface JobData {
   overdue: number;
   nextWeek: number;
   laterWeeks: number;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
 }
 
-const JobFrame: React.FC<JobData> = ({ name, overdue, nextWeek, laterWeeks }) => {
+const JobFrame: React.FC<JobData> = ({ id, name, overdue, nextWeek, laterWeeks, isSelected, onSelect }) => {
   const total = overdue + nextWeek + laterWeeks;
 
   return (
     <CardFrame>
-      <div className="flex items-center">
-        <input type="checkbox" className="mr-4" />
+      <div 
+        className="flex items-center cursor-pointer"
+        onClick={() => onSelect(id)}
+      >
+        <input 
+          type="checkbox" 
+          className="mr-4" 
+          checked={isSelected}
+          onChange={() => onSelect(id)}
+          onClick={(e) => e.stopPropagation()} // Prevent double-triggering
+        />
         <div className="w-1/4">
           <h3 className="text-lg font-medium truncate">{name}</h3>
         </div>

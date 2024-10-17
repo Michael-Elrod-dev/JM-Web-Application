@@ -74,13 +74,13 @@ const NewJobFrame: React.FC = () => {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold mb-4">Description</h2>
           <div>
-            <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700">Title*</label>
+            <label htmlFor="jobTitle" className="block text-sm font-medium text-zinc-700 dark:text-white">Title*</label>
             <input
               type="text"
               id="jobTitle"
               value={jobTitle}
               onChange={(e) => setJobTitle(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+              className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
               placeholder="Job title..."
               required
             />
@@ -88,35 +88,35 @@ const NewJobFrame: React.FC = () => {
 
         <div className="grid grid-cols-3 gap-4">
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">Start Date*</label>
+              <label htmlFor="startDate" className="block text-sm font-medium text-zinc-700 dark:text-white">Start Date*</label>
               <input
                 type="date"
                 id="startDate"
                 value={startDate}
                 onChange={handleStartDateChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
                 required
               />
             </div>
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700">Duration (days)*</label>
+              <label htmlFor="duration" className="block text-sm font-medium text-zinc-700 dark:text-white">Duration (days)*</label>
               <input
                 type="number"
                 id="duration"
                 value={duration}
                 onChange={handleDurationChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
                 required
               />
             </div>
             <div>
-              <label htmlFor="estimatedEndDate" className="block text-sm font-medium text-gray-700">Estimated End Date*</label>
+              <label htmlFor="estimatedEndDate" className="block text-sm font-medium text-zinc-700 dark:text-white">Estimated End Date*</label>
               <input
                 type="date"
                 id="estimatedEndDate"
                 value={estimatedEndDate}
                 onChange={handleEstimatedEndDateChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
                 required
               />
             </div>
@@ -124,60 +124,60 @@ const NewJobFrame: React.FC = () => {
 
           <div className="grid grid-cols-3 gap-4">
           <div>
-            <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">Client Name</label>
+            <label htmlFor="clientName" className="block text-sm font-medium text-zinc-700 dark:text-white">Client Name</label>
             <input
               type="text"
               id="clientName"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+              className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
               placeholder="Name Here"
             />
           </div>
           <div>
-            <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700">Client Phone Number</label>
+            <label htmlFor="clientPhone" className="block text-sm font-medium text-zinc-700 dark:text-white">Client Phone Number</label>
             <input
               type="tel"
               id="clientPhone"
               value={clientPhone}
               onChange={(e) => setClientPhone(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+              className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
               placeholder="999-999-9999"
             />
           </div>
           <div>
-            <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700">Client Email</label>
+            <label htmlFor="clientEmail" className="block text-sm font-medium text-zinc-700 dark:text-white">Client Email</label>
             <input
               type="email"
               id="clientEmail"
               value={clientEmail}
               onChange={(e) => setClientEmail(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+              className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
               placeholder="client@gmail.com"
             />
           </div>
         </div>
         
         <div>
-          <label htmlFor="jobLocation" className="block text-sm font-medium text-gray-700">Job Location</label>
+          <label htmlFor="jobLocation" className="block text-sm font-medium text-zinc-700 dark:text-white">Job Location</label>
           <input
             type="text"
             id="jobLocation"
             value={jobLocation}
             onChange={(e) => setJobLocation(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
             placeholder="Address where the property is located..."
           />
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+          <label htmlFor="description" className="block text-sm font-medium text-zinc-700 dark:text-white">Description</label>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
             placeholder="This is a detailed or high level description of the job..."
           ></textarea>
         </div>
@@ -194,7 +194,7 @@ const NewJobFrame: React.FC = () => {
         />
       ))}
 
-      <div className="flex space-x-4 mt-4">
+      <div className="flex justify-end space-x-4 mt-4 w-full">
         <JobButton
           title="Add a Phase"
           icon={FaPlus}
