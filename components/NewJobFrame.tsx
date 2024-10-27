@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import CardFrame from './CardFrame';
 import JobButton from './JobButton';
-import PhaseCard from './PhaseCard';
+import PhaseCard from './NewPhaseCard';
 import { FaPlus } from 'react-icons/fa';
 import { handleAddPhase, handleDeletePhase, handleCreate, handleCancel } from '../handlers/jobs';
 

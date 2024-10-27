@@ -11,16 +11,5 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
     return <div>Job not found</div>;
   }
 
-  return (
-    <DetailedJobView
-      jobName={job.jobName}
-      dateRange={job.dateRange}
-      phases={job.phases}
-      currentWeek={job.currentWeek}
-      totalWeeks={job.totalWeeks}
-      overdue={job.overdue}
-      nextSevenDays={job.nextSevenDays}
-      sevenDaysPlus={job.sevenDaysPlus}
-    />
-  );
+  return <DetailedJobView {...job} />;
 }

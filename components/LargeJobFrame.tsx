@@ -31,6 +31,10 @@ const LargeJobFrame: React.FC<Job> = (props) => {
     </div>
   );
 
+  // Collect all tasks and materials from all phases
+  const allTasks = job.phases.flatMap(phase => phase.tasks);
+  const allMaterials = job.phases.flatMap(phase => phase.materials);
+
   // Calculate the required height for the timeline
   const timelineHeight = 20 + job.phases.length * 28;
 
@@ -50,8 +54,8 @@ const LargeJobFrame: React.FC<Job> = (props) => {
       </div>
       <div className="flex h-[250px]">
         <div className="w-2/3 pr-4 flex flex-col justify-between">
-          {renderDropdown('Tasks', job.tasks)}
-          {renderDropdown('Materials', job.materials)}
+          {renderDropdown('Tasks', allTasks)}
+          {renderDropdown('Materials', allMaterials)}
           {renderDropdown('Workers', job.workers)}
         </div>
         <div className="w-1/3 h-full">
