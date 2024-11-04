@@ -3,9 +3,9 @@
 
 import React from 'react';
 import { Pie } from 'react-chartjs-2';
-import { TooltipItem } from 'chart.js';
+import { TooltipItem, Color } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title, ChartOptions } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 
@@ -19,17 +19,25 @@ const PieChart: React.FC<PieChartProps> = ({ overdue, sevenDaysPlus, nextSevenDa
   const totalItems = overdue + sevenDaysPlus + nextSevenDays;
 
   const data = {
-    labels: ['Overdue', '>7 Days', 'Next 7 Days'],
+    labels: ['>7 Days', 'Next 7 Days', 'Overdue'],
     datasets: [
       {
-        data: [overdue, sevenDaysPlus, nextSevenDays],
-        backgroundColor: ['#FF6384', '#FFCE56', '#36A2EB'],
-        hoverBackgroundColor: ['#FF6384', '#FFCE56', '#36A2EB'],
+        data: [sevenDaysPlus, nextSevenDays, overdue],
+        backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
+        hoverBackgroundColor: ['#36A2EB', '#FFCE56', '#FF6384'],
       },
     ],
   };
 
-  const options = {
+  const options: ChartOptions<'pie'> & {
+    plugins: {
+      datalabels: {
+        color: string;
+        font: { weight: number; size: number };
+        formatter: (value: number) => string;
+      };
+    };
+  } = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -39,10 +47,10 @@ const PieChart: React.FC<PieChartProps> = ({ overdue, sevenDaysPlus, nextSevenDa
           boxWidth: 15,
           boxHeight: 15,
           padding: 15,
-          color: (context: any) => {
+          color: (() => {
             const isDarkMode = document.documentElement.classList.contains('dark');
-            return isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(107, 114, 128, 1)'; // White in dark mode, zinc in light mode
-          },
+            return isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(107, 114, 128, 1)';
+          })(),
           font: {
             size: 12,
           },
@@ -69,7 +77,7 @@ const PieChart: React.FC<PieChartProps> = ({ overdue, sevenDaysPlus, nextSevenDa
 
   return (
     <div className="w-full h-full">
-      <Pie data={data} options={options} plugins={[ChartDataLabels]} />
+      <Pie data={data} options={options as any} plugins={[ChartDataLabels as any]} />
     </div>
   );
 };

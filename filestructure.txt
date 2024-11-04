@@ -1,27 +1,56 @@
 src/
-├── app/
-│   └── calendar/
-│       └── page.tsx
-│   └── contacts/
-│       └── page.tsx
-│   └── jobs/
-│       ├── [id]/
-│       │   └── page.tsx
-│       └── page.tsx
-│   └── settings/
-│       └── page.tsx
-│   ├── layout.tsx
-│   ├── providers.tsx
-│   └── page.tsx
-├── components/
-│   ├── CardFrame/
-│   ├── ContactCard/
-│   ├── DarkModeToggle/
-│   ├── Dashboard/
-│   ├── HeaderTabs/
-│   ├── JobFrame/
-│   ├── Login/
-│   ├── Settings/
-│   └── SideBar/
-ect.
-    
+└── web-app/
+    ├── app/
+    │   ├── api/
+    │   │   ├── jobs/
+    │   │   │   └── route.ts
+    │   │   └── users/
+    │   │       └── route.ts
+    │   ├── calendar/
+    │   │   └── page.tsx
+    │   ├── contacts/
+    │   │   └── page.tsx
+    │   ├── jobs/
+    │   │   ├── [id]/
+    │   │   │   └── page.tsx
+    │   │   ├── active/
+    │   │   │   └── page.tsx
+    │   │   ├── closed/
+    │   │   │   └── page.tsx
+    │   │   ├── deleted/
+    │   │   │   └── page.tsx
+    │   │   ├── new/
+    │   │   │   └── page.tsx
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── lib/
+    │   │   └── db.ts
+    │   ├── settings/
+    │   │   └── page.tsx
+    │   ├── types/
+    │   │   └── index.ts
+    │   ├── utils/
+    │   │   └── api.ts
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   ├── page.tsx
+    │   └── providers.tsx
+    └── components/
+        ├── CardFrame.tsx
+        ├── ContactCard.tsx
+        ├── DarkModeToggle.tsx
+        ├── DetailedJobView.tsx
+        ├── HeaderTabs.tsx
+        ├── JobButton.tsx
+        ├── JobFrame.tsx
+        ├── LargeJobFrame.tsx
+        ├── MaterialsCard.tsx
+        ├── NewJobFrame.tsx
+        ├── NewMaterialCard.tsx
+        ├── NewPhaseCard.tsx
+        ├── NewTaskCard.tsx
+        ├── PhaseCard.tsx
+        ├── PieChart.tsx
+        ├── SideBar.tsx
+        ├── SmallCardFrame.tsx
+        └── TaskCard.tsx

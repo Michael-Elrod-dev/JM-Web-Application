@@ -19,7 +19,7 @@ export const handleDeletePhase = (
 };
 
 export const handleCreate = () => {
-  console.log('Create clicked');
+  // console.log('Create clicked');
   // Logic to create the job (e.g., send data to API)
 };
 
@@ -35,7 +35,7 @@ export const handleCancel = (
   setDescription: Dispatch<SetStateAction<string>>,
   setPhases: Dispatch<SetStateAction<number[]>>
 ) => {
-  console.log('Cancel clicked');
+  // console.log('Cancel clicked');
   setJobTitle('');
   setClientName('');
   setClientPhone('');

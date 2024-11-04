@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Tab {
   name: string;
@@ -13,11 +16,17 @@ interface HeaderTabsProps {
 
 const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }) => {
   const [activeTabElement, setActiveTabElement] = useState<HTMLElement | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const element = document.getElementById(`tab-${activeTab}`);
     setActiveTabElement(element);
   }, [activeTab]);
+
+  const handleTabClick = (tab: Tab) => {
+    setActiveTab(tab.name);
+    router.push(tab.href);
+  };
 
   return (
     <div className="mt-6">
@@ -32,7 +41,7 @@ const HeaderTabs: React.FC<HeaderTabsProps> = ({ tabs, activeTab, setActiveTab }
             }`}
             onClick={(e) => {
               e.preventDefault();
-              setActiveTab(tab.name);
+              handleTabClick(tab);
             }}
           >
             {tab.name}

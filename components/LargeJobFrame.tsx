@@ -4,15 +4,30 @@ import React from 'react';
 import Link from 'next/link';
 import PieChart from './PieChart';
 import Timeline from './Timeline';
-import { Job, jobs } from '../data/jobsData';
 
-const LargeJobFrame: React.FC<Job> = (props) => {
-  const job = jobs.find(j => j.id === props.id);
+interface Phase {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  color: string;
+}
 
-  if (!job) {
-    return <div>Job not found</div>;
-  }
+interface JobProps {
+  id: number;
+  jobName: string;
+  dateRange: string;
+  currentWeek: number;
+  phases: Phase[];
+  overdue: number;
+  sevenDaysPlus: number;
+  nextSevenDays: number;
+  tasks: string[];
+  materials: string[];
+  workers: string[];
+}
 
+const LargeJobFrame: React.FC<JobProps> = (props) => {
   const renderDropdown = (label: string, items: string[]) => (
     <div className="mb-4">
       <label className="block text-md font-medium mb-1 text-zinc-700 dark:text-white">{label}</label>
@@ -31,51 +46,57 @@ const LargeJobFrame: React.FC<Job> = (props) => {
     </div>
   );
 
-  // Collect all tasks and materials from all phases
-  const allTasks = job.phases.flatMap(phase => phase.tasks);
-  const allMaterials = job.phases.flatMap(phase => phase.materials);
+  // Get the actual start and end dates from the phases
+  const startDate = props.phases[0]?.startDate;
+  const endDate = props.phases[props.phases.length - 1]?.endDate;
+
+  console.log('Job Date Range:', {
+    startDate,
+    endDate,
+    phases: props.phases
+  });
 
   // Calculate the required height for the timeline
-  const timelineHeight = 20 + job.phases.length * 28;
+  const timelineHeight = 20 + props.phases.length * 28;
 
   return (
     <div className="bg-white dark:bg-zinc-800 shadow-md overflow-hidden sm:rounded-lg mb-4 p-6">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-baseline">
-          <h2 className="text-2xl font-bold mr-4">{job.jobName}</h2>
-          <p className="text-sm text-zinc-600 dark:text-white/70">{job.dateRange}</p>
+          <h2 className="text-2xl font-bold mr-4">{props.jobName}</h2>
+          <p className="text-lg text-zinc-600 dark:text-white/70">{props.dateRange}</p>
         </div>
         <Link 
-          href={`/jobs/${job.id}`}
+          href={`/jobs/${props.id}`}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
         >
           View
         </Link>
       </div>
+
       <div className="flex h-[250px]">
         <div className="w-2/3 pr-4 flex flex-col justify-between">
-          {renderDropdown('Tasks', allTasks)}
-          {renderDropdown('Materials', allMaterials)}
-          {renderDropdown('Workers', job.workers)}
+          {renderDropdown('Tasks', props.tasks)}
+          {renderDropdown('Materials', props.materials)}
+          {renderDropdown('Workers', props.workers)}
         </div>
         <div className="w-1/3 h-full">
           <PieChart 
-            overdue={job.overdue}
-            sevenDaysPlus={job.sevenDaysPlus}
-            nextSevenDays={job.nextSevenDays}
+            overdue={props.overdue}
+            sevenDaysPlus={props.sevenDaysPlus}
+            nextSevenDays={props.nextSevenDays}
           />
         </div>
       </div>
       
       <div className="mt-4">
         <label className="block text-md font-medium mb-1">Timeline</label>
-        <div className={`w-full`} style={{ height: `${timelineHeight}px` }}>
-        <Timeline 
-            phases={job.phases} 
-            currentWeek={job.currentWeek} 
-            totalWeeks={job.totalWeeks} 
-            startDate={job.dateRange.split(' - ')[0]} 
-            endDate={job.dateRange.split(' - ')[1]}
+        <div className="w-full" style={{ height: `${timelineHeight}px` }}>
+          <Timeline 
+            phases={props.phases}
+            startDate={startDate}
+            endDate={endDate}
+            currentWeek={props.currentWeek}
           />
         </div>
       </div>
