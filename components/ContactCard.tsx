@@ -1,23 +1,28 @@
 // components/ContactCard.tsx
 import React from 'react';
 import CardFrame from './CardFrame';
-import { AppUser } from '@/app/types';
 
-const ContactCard: React.FC<AppUser> = ({ user_name, user_email, user_phone, user_type }) => {
+interface ContactCardProps {
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  user_phone: string;
+  showCheckbox?: boolean;
+}
+
+const ContactCard: React.FC<ContactCardProps> = ({ 
+  user_name, 
+  user_email, 
+  user_phone, 
+  showCheckbox = false 
+}) => {
   return (
     <CardFrame>
-      <div className="flex items-center">
-        <input type="checkbox" className="mr-4" />
-        <div className="flex-1">
-          <div className="flex justify-between items-start">
-            <h3 className="text-lg font-medium">{user_name}</h3>
-            <span className="text-sm px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {user_type}
-            </span>
-          </div>
-          <p className="text-sm">{user_email}</p>
-          <p className="text-sm">{user_phone}</p>
-        </div>
+      <div className="grid grid-cols-3 items-center">
+        {showCheckbox && <input type="checkbox" className="mr-4" />}
+        <span className="text-lg">{user_name}</span>
+        <span className="text-lg text-center">{user_phone}</span>
+        <span className="text-lg text-right">{user_email}</span>
       </div>
     </CardFrame>
   );

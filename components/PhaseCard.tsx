@@ -5,24 +5,63 @@ import TasksCard from './TasksCard';
 import MaterialsCard from './MaterialsCard';
 import SmallCardFrame from './SmallCardFrame';
 
+interface User {
+  user_id: number;
+  user_name: string;
+  user_phone: string;
+  user_email: string;
+}
+
+interface Task {
+  task_id: number;
+  task_title: string;
+  task_startdate: string;
+  task_duration: number;
+  task_status: string;
+  task_description: string;
+  users: User[];
+}
+
+interface Material {
+  material_id: number;
+  material_title: string;
+  material_duedate: string;
+  material_status: string;
+  material_description: string;
+  users: User[];
+}
+
 interface PhaseCardProps {
   phase: {
     id: number;
     name: string;
-    startWeek: number;
-    endWeek: number;
+    startDate: string;
+    endDate: string;
     color: string;
-    tasks: string[];
-    materials: string[];
+    tasks: Task[];
+    materials: Material[];
     note: string[];
   };
+  phaseNumber: number;
   showTasks: boolean;
   showMaterials: boolean;
 }
 
-const PhaseCard: React.FC<PhaseCardProps> = ({ phase, showTasks, showMaterials }) => {
+const PhaseCard: React.FC<PhaseCardProps> = ({ phase, phaseNumber, showTasks, showMaterials }) => {
   const [notes, setNotes] = useState(phase.note);
   const [newNote, setNewNote] = useState('');
+
+  // Format dates for display
+  const startDate = new Date(phase.startDate).toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  const endDate = new Date(phase.endDate).toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
   const handleAddNote = () => {
     if (newNote.trim()) {
@@ -33,8 +72,14 @@ const PhaseCard: React.FC<PhaseCardProps> = ({ phase, showTasks, showMaterials }
 
   return (
     <CardFrame>
-      <h3 className="text-lg font-semibold mb-2">{phase.name}</h3>
-      <p className="text-sm mb-4">Weeks {phase.startWeek} - {phase.endWeek}</p>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">
+          Phase {phaseNumber} - {phase.name}
+        </h3>
+        <span className="text-md">
+          {startDate} - {endDate}
+        </span>
+      </div>
       
       <div className="space-y-4">
         {showTasks && phase.tasks.length > 0 && (
