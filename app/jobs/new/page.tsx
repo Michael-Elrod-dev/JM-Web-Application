@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import NewJobFrame from '../../../components/NewJobFrame';
+import NewJobFrame from '../../../components/new/NewJobFrame';
 
 export default function NewJobPage() {
   return (

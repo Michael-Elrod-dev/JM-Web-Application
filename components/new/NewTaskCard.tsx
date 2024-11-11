@@ -1,9 +1,10 @@
 // components/TaskCard.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTrash } from 'react-icons/fa';
-import { Contact } from '../data/contactsData';
-import { calculateEndDate, calculateDuration } from '../handlers/phases';
+import { Contact } from '../../data/contactsData';
+import ContactCard from '../ContactCard';
+import { calculateEndDate, calculateDuration } from '../../handlers/phases';
 
 interface TaskCardProps {
   task: Task;
@@ -11,6 +12,7 @@ interface TaskCardProps {
   onDelete: () => void;
   phaseStartDate: string;
   contacts: Contact[];
+  isAnyTaskExpanded?: boolean;
 }
 
 interface Task {
@@ -24,12 +26,31 @@ interface Task {
   isExpanded: boolean;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStartDate, contacts }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStartDate, contacts, isAnyTaskExpanded }) => {
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [localTask, setLocalTask] = useState<Task>(task);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-
   const isNewTask = task.id === '';
+
+  useEffect(() => {
+    setLocalTask(task);
+  }, [task]);
+
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+  };
+  
+  const handleExpand = () => {
+    if (!isAnyTaskExpanded || localTask.isExpanded) {
+      setLocalTask(prev => ({ ...prev, isExpanded: true }));
+    }
+  };
 
   const handleInputChange = (field: keyof Task, value: string) => {
     setLocalTask(prev => ({ ...prev, [field]: value }));
@@ -55,16 +76,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     }));
   };
 
-  const handleDueDateChange = (newDueDate: string) => {
-    const newDuration = calculateDuration(localTask.startDate, newDueDate).toString();
-    setLocalTask(prev => ({
-      ...prev,
-      dueDate: newDueDate,
-      duration: newDuration,
-    }));
-    setErrors(prev => ({ ...prev, dueDate: '' }));
-  };
-
   const handleContactSelect = (contact: Contact) => {
     setSelectedContacts([...selectedContacts, contact]);
   };
@@ -73,18 +84,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     setSelectedContacts(selectedContacts.filter(contact => contact.id !== contactId));
   };
 
+  const handleDelete = () => {
+    onDelete();
+  };
+
   const validateTask = (): boolean => {
     const newErrors: {[key: string]: string} = {};
     if (!localTask.title.trim()) newErrors.title = 'Title is required';
     if (!localTask.startDate) newErrors.startDate = 'Start date is required';
-    if (!localTask.dueDate) newErrors.dueDate = 'Due date is required';
+    if (!localTask.duration) newErrors.duration = 'Duration is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = () => {
     if (validateTask()) {
-      onUpdate({ ...localTask, isExpanded: false });
+      const updatedTask = { ...localTask, isExpanded: false };
+      setLocalTask(updatedTask);
+      onUpdate(updatedTask);
     }
   };
 
@@ -92,7 +109,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     if (isNewTask) {
       onDelete();
     } else {
-      setLocalTask(task);
+      setLocalTask({ ...task, isExpanded: false });
       onUpdate({ ...task, isExpanded: false });
     }
   };
@@ -102,7 +119,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
       {localTask.isExpanded ? (
         <div>
           <div className="mb-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Title</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              Title<span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={localTask.title}
@@ -111,9 +130,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
             />
             {errors.title && <p className="text-red-500 text-xs">{errors.title}</p>}
           </div>
-          <div className="grid grid-cols-3 gap-4 mb-2">
+          <div className="grid grid-cols-2 gap-4 mb-2">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Start Date</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                Start Date<span className="text-red-500">*</span>
+              </label>
               <input
                 type="date"
                 value={localTask.startDate}
@@ -124,25 +145,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
               {errors.startDate && <p className="text-red-500 text-xs">{errors.startDate}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Duration (days)</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                Duration (days)<span className="text-red-500">*</span>
+              </label>
               <input
                 type="number"
                 value={localTask.duration}
                 onChange={(e) => handleDurationChange(e.target.value)}
                 min="1"
-                className="w-full p-2 border rounded"
+                className={`w-full p-2 border rounded ${errors.duration ? 'border-red-500' : ''}`}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Due Date</label>
-              <input
-                type="date"
-                value={localTask.dueDate}
-                onChange={(e) => handleDueDateChange(e.target.value)}
-                min={localTask.startDate}
-                className={`w-full p-2 border rounded ${errors.dueDate ? 'border-red-500' : ''}`}
-              />
-              {errors.dueDate && <p className="text-red-500 text-xs">{errors.dueDate}</p>}
+              {errors.duration && <p className="text-red-500 text-xs">{errors.duration}</p>}
             </div>
           </div>
           <div className="mb-2">
@@ -161,6 +174,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
                 const selectedContact = contacts.find(contact => contact.id === e.target.value);
                 if (selectedContact) {
                   handleContactSelect(selectedContact);
+                  e.target.value = ''; // Reset select after adding
                 }
               }}
               className="w-full p-2 border rounded"
@@ -170,49 +184,60 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
                 <option key={contact.id} value={contact.id}>{contact.name}</option>
               ))}
             </select>
-            <ul className="mt-2">
+            <div className="mt-2 space-y-2">
               {selectedContacts.map(contact => (
-                <li key={contact.id} className="flex justify-between items-center">
-                  <span>{contact.name}</span>
+                <div key={contact.id} className="relative">
+                  <ContactCard
+                    user_id={parseInt(contact.id)}
+                    user_name={contact.name}
+                    user_email={contact.email}
+                    user_phone={contact.phone}
+                    showCheckbox={false}
+                  />
                   <button 
                     onClick={() => handleContactRemove(contact.id)}
-                    className="text-zinc-400 hover:text-zinc-600"
+                    className="absolute top-2 right-2 text-zinc-400 hover:text-red-600"
                   >
                     <FaTrash size={16} />
                   </button>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
           <div className="mt-4 flex justify-end">
             <button
               onClick={handleSave}
-              className="mr-2 px-2 py-1 bg-green-500 text-white rounded"
+              className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
               Save
             </button>
             <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-red-500 text-white rounded"
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
-              Cancel
+              Delete
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex justify-between items-center">
-          <span>{localTask.title}</span>
-          <span>{localTask.startDate}</span>
-          <div>
+        <div className="grid grid-cols-3 items-center">
+          <div className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {localTask.title}
+          </div>
+          <div className="text-center">
+            {formatDate(localTask.startDate)}
+          </div>
+          <div className="flex justify-end">
             <button
               onClick={() => setLocalTask(prev => ({ ...prev, isExpanded: true }))}
-              className="mr-2 px-2 py-1 bg-zinc-500 text-white rounded"
+              className="mr-2 px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded"
+              disabled={isAnyTaskExpanded && !localTask.isExpanded}
             >
-              Show
+              Edit
             </button>
             <button
-              onClick={onDelete}
-              className="px-2 py-1 bg-red-500 text-white rounded"
+              onClick={handleDelete}
+              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
             </button>

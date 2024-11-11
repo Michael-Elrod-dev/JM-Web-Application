@@ -62,31 +62,62 @@ export async function GET(request: Request) {
           SELECT 
             j.job_id,
             j.job_title,
-            COUNT(CASE 
-              WHEN (t.task_status = 'Incomplete' AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY) < CURDATE()) OR 
-                   (m.material_status = 'Incomplete' AND m.material_duedate < CURDATE())
-              THEN 1 END) as overdue_count,
-            COUNT(CASE 
-              WHEN (t.task_status = 'Incomplete' AND 
-                    DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY) 
-                    BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)) OR
-                   (m.material_status = 'Incomplete' AND 
-                    m.material_duedate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY))
-              THEN 1 END) as next_week_count,
-            COUNT(CASE 
-              WHEN (t.task_status = 'Incomplete' AND 
-                    DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY) > DATE_ADD(CURDATE(), INTERVAL 7 DAY)) OR
-                   (m.material_status = 'Incomplete' AND 
-                    m.material_duedate > DATE_ADD(CURDATE(), INTERVAL 7 DAY))
-              THEN 1 END) as later_weeks_count
+            (
+              SELECT COUNT(*)
+              FROM phase p1
+              JOIN task t ON p1.phase_id = t.phase_id
+              WHERE p1.job_id = j.job_id 
+                AND t.task_status = 'Incomplete' 
+                AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY) < CURDATE()
+            ) + 
+            (
+              SELECT COUNT(*)
+              FROM phase p2
+              JOIN material m ON p2.phase_id = m.phase_id
+              WHERE p2.job_id = j.job_id
+                AND m.material_status = 'Incomplete' 
+                AND m.material_duedate < CURDATE()
+            ) as overdue_count,
+            (
+              SELECT COUNT(*)
+              FROM phase p3
+              JOIN task t ON p3.phase_id = t.phase_id
+              WHERE p3.job_id = j.job_id 
+                AND t.task_status = 'Incomplete' 
+                AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY) 
+                BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            ) + 
+            (
+              SELECT COUNT(*)
+              FROM phase p4
+              JOIN material m ON p4.phase_id = m.phase_id
+              WHERE p4.job_id = j.job_id
+                AND m.material_status = 'Incomplete' 
+                AND m.material_duedate 
+                BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            ) as next_week_count,
+            (
+              SELECT COUNT(*)
+              FROM phase p5
+              JOIN task t ON p5.phase_id = t.phase_id
+              WHERE p5.job_id = j.job_id 
+                AND t.task_status = 'Incomplete' 
+                AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY) 
+                > DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            ) + 
+            (
+              SELECT COUNT(*)
+              FROM phase p6
+              JOIN material m ON p6.phase_id = m.phase_id
+              WHERE p6.job_id = j.job_id
+                AND m.material_status = 'Incomplete' 
+                AND m.material_duedate > DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            ) as later_weeks_count
           FROM job j
-          LEFT JOIN phase p ON j.job_id = p.job_id
-          LEFT JOIN task t ON p.phase_id = t.phase_id
-          LEFT JOIN material m ON p.phase_id = m.phase_id
           WHERE j.job_status = ?
           GROUP BY j.job_id, j.job_title
         `, [status]);
-
+      
         return NextResponse.json({ jobs });
       }
 

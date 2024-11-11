@@ -23,27 +23,27 @@ export const handleCreate = () => {
   // Logic to create the job (e.g., send data to API)
 };
 
+// In handlers/jobs.ts
 export const handleCancel = (
-  setJobTitle: Dispatch<SetStateAction<string>>,
-  setClientName: Dispatch<SetStateAction<string>>,
-  setClientPhone: Dispatch<SetStateAction<string>>,
-  setClientEmail: Dispatch<SetStateAction<string>>,
-  setStartDate: Dispatch<SetStateAction<string>>,
-  setDuration: Dispatch<SetStateAction<string>>, // Changed from setEndDate
-  setEstimatedEndDate: Dispatch<SetStateAction<string>>, // Added this line
-  setJobLocation: Dispatch<SetStateAction<string>>,
-  setDescription: Dispatch<SetStateAction<string>>,
-  setPhases: Dispatch<SetStateAction<number[]>>
+  setJobTitle: React.Dispatch<React.SetStateAction<string>>,
+  setClientName: React.Dispatch<React.SetStateAction<string>>,
+  setClientPhone: React.Dispatch<React.SetStateAction<string>>,
+  setClientEmail: React.Dispatch<React.SetStateAction<string>>,
+  setStartDate: React.Dispatch<React.SetStateAction<string>>,
+  setJobLocation: React.Dispatch<React.SetStateAction<string>>,
+  setDescription: React.Dispatch<React.SetStateAction<string>>,
+  setPhases: React.Dispatch<React.SetStateAction<number[]>>,
+  setSelectedClient: React.Dispatch<React.SetStateAction<string>>,
+  setShowNewClientForm: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
-  // console.log('Cancel clicked');
   setJobTitle('');
   setClientName('');
   setClientPhone('');
   setClientEmail('');
   setStartDate('');
-  setDuration(''); // Changed from setEndDate('')
-  setEstimatedEndDate(''); // Added this line
   setJobLocation('');
   setDescription('');
   setPhases([]);
+  setSelectedClient('');
+  setShowNewClientForm(false);
 };

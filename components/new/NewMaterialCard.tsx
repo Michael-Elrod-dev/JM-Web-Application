@@ -1,9 +1,8 @@
-// components/MaterialCard.tsx
-
 import React, { useState } from 'react';
 import { FaTrash } from 'react-icons/fa';
-import { Contact } from '../data/contactsData';
-import { calculateEndDate, calculateDuration } from '../handlers/phases';
+import { Contact } from '../../data/contactsData';
+import ContactCard from '../ContactCard';
+import { calculateDuration } from '../../handlers/phases';
 
 interface MaterialCardProps {
   material: Material;
@@ -11,6 +10,7 @@ interface MaterialCardProps {
   onDelete: () => void;
   phaseStartDate: string;
   contacts: Contact[];
+  isAnyMaterialExpanded?: boolean;
 }
 
 interface Material {
@@ -24,12 +24,34 @@ interface Material {
   isExpanded: boolean;
 }
 
-const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelete, phaseStartDate, contacts }) => {
+const MaterialCard: React.FC<MaterialCardProps> = ({ 
+  material, 
+  onUpdate, 
+  onDelete, 
+  phaseStartDate, 
+  contacts,
+  isAnyMaterialExpanded 
+}) => {
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [localMaterial, setLocalMaterial] = useState<Material>(material);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-
+  const [attempted, setAttempted] = useState(false);
   const isNewMaterial = material.id === '';
+
+  // Add date formatting function
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const handleDelete = () => {
+    onDelete();
+  };
 
   const handleInputChange = (field: keyof Material, value: string) => {
     setLocalMaterial(prev => ({ ...prev, [field]: value }));
@@ -37,22 +59,11 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelet
   };
 
   const handleStartDateChange = (newStartDate: string) => {
-    const newDueDate = calculateEndDate(newStartDate, parseInt(localMaterial.duration) || 0);
     setLocalMaterial(prev => ({
       ...prev,
       startDate: newStartDate,
-      dueDate: newDueDate,
     }));
-    setErrors(prev => ({ ...prev, startDate: '', dueDate: '' }));
-  };
-
-  const handleDurationChange = (newDuration: string) => {
-    const newDueDate = calculateEndDate(localMaterial.startDate, parseInt(newDuration) || 0);
-    setLocalMaterial(prev => ({
-      ...prev,
-      duration: newDuration,
-      dueDate: newDueDate,
-    }));
+    setErrors(prev => ({ ...prev, startDate: '' }));
   };
 
   const handleDueDateChange = (newDueDate: string) => {
@@ -74,6 +85,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelet
   };
 
   const validateMaterial = (): boolean => {
+    setAttempted(true);
     const newErrors: {[key: string]: string} = {};
     if (!localMaterial.title.trim()) newErrors.title = 'Title is required';
     if (!localMaterial.startDate) newErrors.startDate = 'Start date is required';
@@ -102,47 +114,43 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelet
       {localMaterial.isExpanded ? (
         <div>
           <div className="mb-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Title</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              Title<span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={localMaterial.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className={`w-full p-2 border rounded ${errors.title ? 'border-red-500' : ''}`}
+              className={`w-full p-2 border rounded ${attempted && errors.title ? 'border-red-500' : ''}`}
             />
-            {errors.title && <p className="text-red-500 text-xs">{errors.title}</p>}
+            {attempted && errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
           </div>
-          <div className="grid grid-cols-3 gap-4 mb-2">
+          <div className="grid grid-cols-2 gap-4 mb-2">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Start Date</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                Start Date<span className="text-red-500">*</span>
+              </label>
               <input
                 type="date"
                 value={localMaterial.startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
                 min={phaseStartDate}
-                className={`w-full p-2 border rounded ${errors.startDate ? 'border-red-500' : ''}`}
+                className={`w-full p-2 border rounded ${attempted && errors.startDate ? 'border-red-500' : ''}`}
               />
-              {errors.startDate && <p className="text-red-500 text-xs">{errors.startDate}</p>}
+              {attempted && errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Duration (days)</label>
-              <input
-                type="number"
-                value={localMaterial.duration}
-                onChange={(e) => handleDurationChange(e.target.value)}
-                min="1"
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Due Date</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                Due Date<span className="text-red-500">*</span>
+              </label>
               <input
                 type="date"
                 value={localMaterial.dueDate}
                 onChange={(e) => handleDueDateChange(e.target.value)}
                 min={localMaterial.startDate}
-                className={`w-full p-2 border rounded ${errors.dueDate ? 'border-red-500' : ''}`}
+                className={`w-full p-2 border rounded ${attempted && errors.dueDate ? 'border-red-500' : ''}`}
               />
-              {errors.dueDate && <p className="text-red-500 text-xs">{errors.dueDate}</p>}
+              {attempted && errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
             </div>
           </div>
           <div className="mb-2">
@@ -161,6 +169,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelet
                 const selectedContact = contacts.find(contact => contact.id === e.target.value);
                 if (selectedContact) {
                   handleContactSelect(selectedContact);
+                  e.target.value = ''; // Reset select after adding
                 }
               }}
               className="w-full p-2 border rounded"
@@ -170,49 +179,60 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelet
                 <option key={contact.id} value={contact.id}>{contact.name}</option>
               ))}
             </select>
-            <ul className="mt-2">
+            <div className="mt-2 space-y-2">
               {selectedContacts.map(contact => (
-                <li key={contact.id} className="flex justify-between items-center">
-                  <span>{contact.name}</span>
+                <div key={contact.id} className="relative [&>*]:py-[2px]">
+                  <ContactCard
+                    user_id={parseInt(contact.id)}
+                    user_name={contact.name}
+                    user_email={contact.email}
+                    user_phone={contact.phone}
+                    showCheckbox={false}
+                  />
                   <button 
                     onClick={() => handleContactRemove(contact.id)}
-                    className="text-zinc-400 hover:text-zinc-600"
+                    className="absolute top-0.5 right-2 text-zinc-400 hover:text-zinc-600"
                   >
                     <FaTrash size={16} />
                   </button>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
           <div className="mt-4 flex justify-end">
             <button
               onClick={handleSave}
-              className="mr-2 px-2 py-1 bg-green-500 text-white rounded"
+              className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
               Save
             </button>
             <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-red-500 text-white rounded"
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
-              Cancel
+              Delete
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex justify-between items-center">
-          <span>{localMaterial.title}</span>
-          <span>{localMaterial.startDate}</span>
-          <div>
+        <div className="grid grid-cols-3 items-center">
+          <div className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {localMaterial.title}
+          </div>
+          <div className="text-center">
+            {formatDate(localMaterial.startDate)}
+          </div>
+          <div className="flex justify-end">
             <button
               onClick={() => setLocalMaterial(prev => ({ ...prev, isExpanded: true }))}
-              className="mr-2 px-2 py-1 bg-zinc-500 text-white rounded"
+              className="mr-2 px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded"
+              disabled={isAnyMaterialExpanded && !localMaterial.isExpanded}
             >
-              Show
+              Edit
             </button>
             <button
-              onClick={onDelete}
-              className="px-2 py-1 bg-red-500 text-white rounded"
+              onClick={handleDelete}
+              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
             </button>
@@ -222,5 +242,6 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, onUpdate, onDelet
     </div>
   );
 };
+
 
 export default MaterialCard;
