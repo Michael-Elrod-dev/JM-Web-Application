@@ -1,11 +1,47 @@
 // components/NewJobFrame.tsx
 
-import React, { useState } from 'react';
+import { useState, useCallback } from 'react';
 import CardFrame from '../CardFrame';
 import JobButton from '../JobButton';
 import PhaseCard from './NewPhaseCard';
 import { FaPlus } from 'react-icons/fa';
 import { handleAddPhase, handleDeletePhase, handleCreate, handleCancel } from '../../handlers/jobs';
+
+interface Phase {
+  id: number;
+  title: string;
+  startDate: string;
+  description: string;
+  tasks: Task[];
+  materials: Material[];
+  notes: Note[];
+}
+
+interface Task {
+  id: string;
+  title: string;
+  startDate: string;
+  duration: string;
+  dueDate: string;
+  status: string;
+  details: string;
+  isExpanded: boolean;
+}
+
+interface Material {
+  id: string;
+  title: string;
+  dueDate: string;
+  status: string;
+  details: string;
+  isExpanded: boolean;
+}
+
+interface Note {
+  id: string;
+  content: string;
+  isExpanded: boolean;
+}
 
 const NewJobFrame: React.FC = () => {
   const [jobTitle, setJobTitle] = useState('');
@@ -17,7 +53,7 @@ const NewJobFrame: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [jobLocation, setJobLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [phases, setPhases] = useState<number[]>([]);
+  const [phases, setPhases] = useState<Phase[]>([]);
   const [attempted, setAttempted] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
@@ -28,24 +64,74 @@ const NewJobFrame: React.FC = () => {
     { id: 3, name: "Client C" },
   ];
 
-  const getInputClassName = (value: string) => {
+  const getInputClassName = (fieldName: string) => {
     const baseClass = "mt-1 block w-full border rounded-md shadow-sm p-2";
     const errorClass = "border-red-500";
     const normalClass = "border-zinc-300";
     
-    return `${baseClass} ${attempted && !value && errors[value] ? errorClass : normalClass}`;
+    return `${baseClass} ${attempted && errors[fieldName] ? errorClass : normalClass}`;
   };
+
+  const handlePhaseUpdate = useCallback((updatedPhase: Phase) => {
+    setPhases(prevPhases => 
+      prevPhases.map(p => p.id === updatedPhase.id ? updatedPhase : p)
+    );
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     switch(field) {
       case 'jobTitle':
         setJobTitle(value);
         break;
-      case 'startDate':
-        setStartDate(value);
-        break;
+        case 'startDate':
+          if (value && !isNaN(new Date(value).getTime())) {
+            const diffDays = calculateDateDiff(startDate, value);
+            
+            // Update all phases and their contents
+            const updatedPhases = phases.map(phase => {
+              const newPhaseStartDate = adjustDate(phase.startDate, diffDays);
+              
+              // Update tasks
+              const updatedTasks = phase.tasks.map(task => ({
+                ...task,
+                startDate: adjustDate(task.startDate, diffDays),
+                dueDate: adjustDate(task.dueDate, diffDays)
+              }));
+              
+              // Update materials
+              const updatedMaterials = phase.materials.map(material => ({
+                ...material,
+                dueDate: adjustDate(material.dueDate, diffDays)
+              }));
+              
+              return {
+                ...phase,
+                startDate: newPhaseStartDate,
+                tasks: updatedTasks,
+                materials: updatedMaterials
+              };
+            });
+            
+            setPhases(updatedPhases);
+          }
+          setStartDate(value);
+          break;
     }
     setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+  
+  const calculateDateDiff = (oldDate: string, newDate: string): number => {
+    if (!oldDate || !newDate) return 0;
+    const oldDateTime = new Date(oldDate).getTime();
+    const newDateTime = new Date(newDate).getTime();
+    return Math.floor((newDateTime - oldDateTime) / (1000 * 60 * 60 * 24));
+  };
+  
+  const adjustDate = (dateStr: string, diffDays: number): string => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + diffDays);
+    return date.toISOString().split('T')[0];
   };
 
   return (
@@ -76,14 +162,14 @@ const NewJobFrame: React.FC = () => {
             <label htmlFor="startDate" className="block text-sm font-medium text-zinc-700 dark:text-white">
               Start Date<span className="text-red-500">*</span>
             </label>
-            <input
-              type="date"
-              id="startDate"
-              value={startDate}
-              onChange={(e) => handleInputChange('startDate', e.target.value)}
-              className={getInputClassName('startDate')}
-              required
-            />
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => handleInputChange('startDate', e.target.value)}
+                className={`${getInputClassName('startDate')} [color-scheme:light] text-zinc-900 dark:text-white placeholder-zinc-500 [&:not(:valid)]:text-zinc-500`}
+                required
+              />
             {attempted && errors.startDate && (
               <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>
             )}
@@ -111,11 +197,11 @@ const NewJobFrame: React.FC = () => {
                   <select 
                     value={selectedClient}
                     onChange={(e) => setSelectedClient(e.target.value)}
-                    className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2 text-zinc-400"
                   >
-                    <option value="">Select a client</option>
+                    <option value="" className="text-zinc-400">Select a client...</option>
                     {existingClients.map(client => (
-                      <option key={client.id} value={client.id}>
+                      <option key={client.id} value={client.id} className="text-zinc-900">
                         {client.name}
                       </option>
                     ))}
@@ -193,12 +279,14 @@ const NewJobFrame: React.FC = () => {
         </div>
       </CardFrame>
 
-      {phases.map((_, index) => (
+      {phases.map((phase, index) => (
         <PhaseCard 
-          key={index} 
+          key={phase.id} 
+          phase={phase}
           phaseNumber={index + 1} 
           onDelete={() => handleDeletePhase(index, phases, setPhases)}
           jobStartDate={startDate}
+          onUpdate={handlePhaseUpdate}
         />
       ))}
 
@@ -214,7 +302,7 @@ const NewJobFrame: React.FC = () => {
             setErrors(newErrors);
             
             if (Object.keys(newErrors).length === 0) {
-              handleAddPhase(phases, setPhases);
+              handleAddPhase(phases, setPhases, startDate);
             }
           }}
           color="default"
@@ -227,13 +315,13 @@ const NewJobFrame: React.FC = () => {
         <JobButton
           title="Cancel"
           onClick={() => handleCancel(
-            setJobTitle, 
-            setClientName, 
-            setClientPhone, 
+            setJobTitle,
+            setClientName,
+            setClientPhone,
             setClientEmail,
-            setStartDate, 
-            setJobLocation, 
-            setDescription, 
+            setStartDate,
+            setJobLocation,
+            setDescription,
             setPhases,
             setSelectedClient,
             setShowNewClientForm

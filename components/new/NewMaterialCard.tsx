@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Contact } from '../../data/contactsData';
 import ContactCard from '../ContactCard';
 import { calculateDuration } from '../../handlers/phases';
@@ -16,8 +16,6 @@ interface MaterialCardProps {
 interface Material {
   id: string;
   title: string;
-  startDate: string;
-  duration: string;
   dueDate: string;
   status: string;
   details: string;
@@ -58,24 +56,6 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const handleStartDateChange = (newStartDate: string) => {
-    setLocalMaterial(prev => ({
-      ...prev,
-      startDate: newStartDate,
-    }));
-    setErrors(prev => ({ ...prev, startDate: '' }));
-  };
-
-  const handleDueDateChange = (newDueDate: string) => {
-    const newDuration = calculateDuration(localMaterial.startDate, newDueDate).toString();
-    setLocalMaterial(prev => ({
-      ...prev,
-      dueDate: newDueDate,
-      duration: newDuration,
-    }));
-    setErrors(prev => ({ ...prev, dueDate: '' }));
-  };
-
   const handleContactSelect = (contact: Contact) => {
     setSelectedContacts([...selectedContacts, contact]);
   };
@@ -88,7 +68,6 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     setAttempted(true);
     const newErrors: {[key: string]: string} = {};
     if (!localMaterial.title.trim()) newErrors.title = 'Title is required';
-    if (!localMaterial.startDate) newErrors.startDate = 'Start date is required';
     if (!localMaterial.dueDate) newErrors.dueDate = 'Due date is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -100,44 +79,22 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     }
   };
 
-  const handleCancel = () => {
-    if (isNewMaterial) {
-      onDelete();
-    } else {
-      setLocalMaterial(material);
-      onUpdate({ ...material, isExpanded: false });
-    }
-  };
-
   return (
     <div className="mb-4 p-4 border rounded">
       {localMaterial.isExpanded ? (
         <div>
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-              Title<span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={localMaterial.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              className={`w-full p-2 border rounded ${attempted && errors.title ? 'border-red-500' : ''}`}
-            />
-            {attempted && errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-          </div>
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                Start Date<span className="text-red-500">*</span>
+                Title<span className="text-red-500">*</span>
               </label>
               <input
-                type="date"
-                value={localMaterial.startDate}
-                onChange={(e) => handleStartDateChange(e.target.value)}
-                min={phaseStartDate}
-                className={`w-full p-2 border rounded ${attempted && errors.startDate ? 'border-red-500' : ''}`}
+                type="text"
+                value={localMaterial.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className={`w-full p-2 border rounded ${attempted && errors.title ? 'border-red-500' : ''}`}
               />
-              {attempted && errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>}
+              {attempted && errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
@@ -146,8 +103,8 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
               <input
                 type="date"
                 value={localMaterial.dueDate}
-                onChange={(e) => handleDueDateChange(e.target.value)}
-                min={localMaterial.startDate}
+                onChange={(e) => handleInputChange('dueDate', e.target.value)}
+                min={phaseStartDate}
                 className={`w-full p-2 border rounded ${attempted && errors.dueDate ? 'border-red-500' : ''}`}
               />
               {attempted && errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
@@ -220,21 +177,21 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
             {localMaterial.title}
           </div>
           <div className="text-center">
-            {formatDate(localMaterial.startDate)}
+            {formatDate(localMaterial.dueDate)}
           </div>
           <div className="flex justify-end">
             <button
               onClick={() => setLocalMaterial(prev => ({ ...prev, isExpanded: true }))}
-              className="mr-2 px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded"
+              className="mr-2 text-zinc-400 hover:text-blue-500 transition-colors"
               disabled={isAnyMaterialExpanded && !localMaterial.isExpanded}
             >
-              Edit
+              <FaEdit size={18} />
             </button>
             <button
               onClick={handleDelete}
-              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
+              className="text-zinc-400 hover:text-red-500 transition-colors"
             >
-              Delete
+              <FaTrash size={18} />
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 // components/TaskCard.tsx
 
 import React, { useState, useEffect } from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Contact } from '../../data/contactsData';
 import ContactCard from '../ContactCard';
 import { calculateEndDate, calculateDuration } from '../../handlers/phases';
@@ -230,16 +230,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
           <div className="flex justify-end">
             <button
               onClick={() => setLocalTask(prev => ({ ...prev, isExpanded: true }))}
-              className="mr-2 px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded"
+              className="mr-2 text-zinc-400 hover:text-blue-500 transition-colors"
               disabled={isAnyTaskExpanded && !localTask.isExpanded}
             >
-              Edit
+              <FaEdit size={18} />
             </button>
             <button
               onClick={handleDelete}
-              className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
+              className="text-zinc-400 hover:text-red-500 transition-colors"
             >
-              Delete
+              <FaTrash size={18} />
             </button>
           </div>
         </div>

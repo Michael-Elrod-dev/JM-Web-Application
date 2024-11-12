@@ -1,6 +1,6 @@
 // components/PhaseCard.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { contacts } from '../../data/contactsData';
 import CardFrame from '../CardFrame';
 import TaskCard from './NewTaskCard';
@@ -10,9 +10,21 @@ import { FaPlus } from 'react-icons/fa';
 import { deleteItem, addItem } from '../../handlers/phases';
 
 interface PhaseCardProps {
+  phase: Phase;
   phaseNumber: number;
   onDelete: () => void;
   jobStartDate: string;
+  onUpdate: (updatedPhase: Phase) => void;
+}
+
+interface Phase {
+  id: number;
+  title: string;
+  startDate: string;
+  description: string;
+  tasks: Task[];
+  materials: Material[];
+  notes: Note[];
 }
 
 interface Task {
@@ -29,8 +41,6 @@ interface Task {
 interface Material {
   id: string;
   title: string;
-  startDate: string;
-  duration: string;
   dueDate: string;
   status: string;
   details: string;
@@ -43,24 +53,29 @@ interface Note {
   isExpanded: boolean;
 }
 
-const PhaseCard: React.FC<PhaseCardProps> = ({ phaseNumber, onDelete, jobStartDate }) => {
-  const [title, setTitle] = useState('');
-  const [startDate, setStartDate] = useState(jobStartDate);
-  const [description, setDescription] = useState('');
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [materials, setMaterials] = useState<Material[]>([]);
+const PhaseCard: React.FC<PhaseCardProps> = ({ 
+  phase, 
+  phaseNumber, 
+  onDelete, 
+  jobStartDate,
+  onUpdate 
+}) => {
+  const [title, setTitle] = useState(phase.title);
+  const [startDate, setStartDate] = useState(phase.startDate || jobStartDate);
+  const [description, setDescription] = useState(phase.description);
+  const [tasks, setTasks] = useState<Task[]>(phase.tasks);
+  const [materials, setMaterials] = useState<Material[]>(phase.materials);
+  const [notes, setNotes] = useState<Note[]>(phase.notes || []);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [notes, setNotes] = useState<Note[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const isAnyTaskExpanded = tasks.some(task => task.isExpanded) || isAddingTask;
   const isAnyMaterialExpanded = materials.some(material => material.isExpanded) || isAddingMaterial;
   const isAnyNoteExpanded = notes.some(note => note.isExpanded) || isAddingNote;
-  
 
   const getInputClassName = (value: string, field: string) => {
     const baseClass = "w-full p-2 border rounded";
@@ -70,18 +85,95 @@ const PhaseCard: React.FC<PhaseCardProps> = ({ phaseNumber, onDelete, jobStartDa
     return `${baseClass} ${attempted && !value && errors[field] ? errorClass : normalClass}`;
   };
 
+  useEffect(() => {
+    if (jobStartDate && startDate && jobStartDate !== startDate) {
+      const diffDays = calculateDateDiff(startDate, jobStartDate);
+      
+      const updatedTasks = tasks.map(task => ({
+        ...task,
+        startDate: adjustDate(task.startDate, diffDays),
+        dueDate: adjustDate(task.dueDate, diffDays)
+      }));
+      
+      const updatedMaterials = materials.map(material => ({
+        ...material,
+        dueDate: adjustDate(material.dueDate, diffDays)
+      }));
+      
+      setTasks(updatedTasks);
+      setMaterials(updatedMaterials);
+      setStartDate(jobStartDate);
+      
+      onUpdate({
+        ...phase,
+        startDate: jobStartDate,
+        tasks: updatedTasks,
+        materials: updatedMaterials
+      });
+    }
+  }, [jobStartDate, startDate, tasks, materials, phase, onUpdate]);
+
   const handleInputChange = (field: string, value: string) => {
     switch(field) {
       case 'title':
         setTitle(value);
+        onUpdate({
+          ...phase,
+          title: value
+        });
         break;
       case 'startDate':
-        if (value >= jobStartDate) {
+        if (value && !isNaN(new Date(value).getTime())) {
+          const diffDays = calculateDateDiff(startDate, value);
+          
+          // Update tasks
+          const updatedTasks = tasks.map(task => ({
+            ...task,
+            startDate: adjustDate(task.startDate, diffDays),
+            dueDate: adjustDate(task.dueDate, diffDays)
+          }));
+          
+          // Update materials
+          const updatedMaterials = materials.map(material => ({
+            ...material,
+            dueDate: adjustDate(material.dueDate, diffDays)
+          }));
+          
+          setTasks(updatedTasks);
+          setMaterials(updatedMaterials);
           setStartDate(value);
+          
+          onUpdate({
+            ...phase,
+            startDate: value,
+            tasks: updatedTasks,
+            materials: updatedMaterials
+          });
         }
+        break;
+      case 'description':
+        setDescription(value);
+        onUpdate({
+          ...phase,
+          description: value
+        });
         break;
     }
     setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+  
+  const calculateDateDiff = (oldDate: string, newDate: string): number => {
+    if (!oldDate || !newDate) return 0;
+    const oldDateTime = new Date(oldDate).getTime();
+    const newDateTime = new Date(newDate).getTime();
+    return Math.floor((newDateTime - oldDateTime) / (1000 * 60 * 60 * 24));
+  };
+  
+  const adjustDate = (dateStr: string, diffDays: number): string => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + diffDays);
+    return date.toISOString().split('T')[0];
   };
   
   const handleSave = () => {
@@ -245,12 +337,12 @@ const PhaseCard: React.FC<PhaseCardProps> = ({ phaseNumber, onDelete, jobStartDa
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
                 Phase Title<span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className={getInputClassName(title, 'title')}
-              />
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  className={getInputClassName(title, 'title')}
+                />
               {attempted && errors.title && (
                 <p className="text-red-500 text-xs mt-1">{errors.title}</p>
               )}
@@ -370,9 +462,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({ phaseNumber, onDelete, jobStartDa
                 material={{
                   id: '',
                   title: '',
-                  startDate: startDate,
-                  duration: '',
-                  dueDate: '',
+                  dueDate: startDate,
                   status: '',
                   details: '',
                   isExpanded: true,
