@@ -78,6 +78,7 @@ const NewJobFrame: React.FC = () => {
     );
   }, []);
 
+
   const handleInputChange = (field: string, value: string) => {
     switch(field) {
       case 'jobTitle':
@@ -85,53 +86,68 @@ const NewJobFrame: React.FC = () => {
         break;
         case 'startDate':
           if (value && !isNaN(new Date(value).getTime())) {
-            const diffDays = calculateDateDiff(startDate, value);
+            const oldDate = new Date(startDate || value);
+            const newDate = new Date(value);
+            const diffDays = Math.floor((newDate.getTime() - oldDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+            console.log('Old date:', oldDate);
+            console.log('New date:', newDate);
+            console.log('Diff days:', diffDays);
+            console.log('Current phases:', phases);
             
-            // Update all phases and their contents
             const updatedPhases = phases.map(phase => {
-              const newPhaseStartDate = adjustDate(phase.startDate, diffDays);
+              if (!phase.startDate) return phase;
               
-              // Update tasks
-              const updatedTasks = phase.tasks.map(task => ({
-                ...task,
-                startDate: adjustDate(task.startDate, diffDays),
-                dueDate: adjustDate(task.dueDate, diffDays)
-              }));
+              const phaseDate = new Date(phase.startDate);
+              const newPhaseDate = new Date(phaseDate.getTime() + diffDays * 1000 * 60 * 60 * 24);
               
-              // Update materials
-              const updatedMaterials = phase.materials.map(material => ({
-                ...material,
-                dueDate: adjustDate(material.dueDate, diffDays)
-              }));
+              const updatedTasks = phase.tasks.map(task => {
+                if (!task.startDate) return task;
+                
+                const taskStartDate = new Date(task.startDate);
+                const newTaskStartDate = new Date(taskStartDate.getTime() + diffDays * 1000 * 60 * 60 * 24);
+                
+                const duration = parseInt(task.duration) || 0;
+                const newTaskDueDate = new Date(newTaskStartDate);
+                newTaskDueDate.setDate(newTaskStartDate.getDate() + duration);
+                
+                return {
+                  ...task,
+                  startDate: newTaskStartDate.toISOString().split('T')[0],
+                  dueDate: newTaskDueDate.toISOString().split('T')[0]
+                };
+              });
+        
+              const updatedMaterials = phase.materials.map(material => {
+                if (!material.dueDate) return material;
+                
+                const materialDueDate = new Date(material.dueDate);
+                const newMaterialDueDate = new Date(materialDueDate.getTime() + diffDays * 1000 * 60 * 60 * 24);
+                
+                return {
+                  ...material,
+                  dueDate: newMaterialDueDate.toISOString().split('T')[0]
+                };
+              });
               
               return {
                 ...phase,
-                startDate: newPhaseStartDate,
+                startDate: newPhaseDate.toISOString().split('T')[0], // This was correctly using newPhaseDate already
                 tasks: updatedTasks,
                 materials: updatedMaterials
               };
             });
+        
+            console.log('Updated phases:', updatedPhases);
             
+            setStartDate(value);
             setPhases(updatedPhases);
           }
-          setStartDate(value);
           break;
+      default:
+        break;
     }
     setErrors(prev => ({ ...prev, [field]: '' }));
-  };
-  
-  const calculateDateDiff = (oldDate: string, newDate: string): number => {
-    if (!oldDate || !newDate) return 0;
-    const oldDateTime = new Date(oldDate).getTime();
-    const newDateTime = new Date(newDate).getTime();
-    return Math.floor((newDateTime - oldDateTime) / (1000 * 60 * 60 * 24));
-  };
-  
-  const adjustDate = (dateStr: string, diffDays: number): string => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() + diffDays);
-    return date.toISOString().split('T')[0];
   };
 
   return (

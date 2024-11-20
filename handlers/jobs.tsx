@@ -1,5 +1,7 @@
 // handlers/jobs.tsx
 
+import { NewJobData } from '@/app/types/jobs';
+
 interface Task {
   id: string;
   title: string;
@@ -36,6 +38,34 @@ interface Phase {
   notes: Note[];
 }
 
+interface Client {
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  user_phone: string;
+}
+
+export const createJob = async (jobData: NewJobData) => {
+  try {
+    const response = await fetch('/api/jobs/new', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(jobData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create job');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating job:', error);
+    throw error;
+  }
+};
 export const handleAddPhase = (
   phases: Phase[], 
   setPhases: React.Dispatch<React.SetStateAction<Phase[]>>,
@@ -62,12 +92,6 @@ export const handleDeletePhase = (
   setPhases(newPhases);
 };
 
-export const handleCreate = () => {
-  // console.log('Create clicked');
-  // Logic to create the job (e.g., send data to API)
-};
-
-
 export const handleCancel = (
   setJobTitle: (value: string) => void,
   setClientName: (value: string) => void,
@@ -77,7 +101,7 @@ export const handleCancel = (
   setJobLocation: (value: string) => void,
   setDescription: (value: string) => void,
   setPhases: (value: Phase[]) => void,
-  setSelectedClient: (value: string) => void,
+  setSelectedClient: (value: Client | null) => void,
   setShowNewClientForm: (value: boolean) => void
 ) => {
   setJobTitle('');
@@ -88,6 +112,6 @@ export const handleCancel = (
   setJobLocation('');
   setDescription('');
   setPhases([]);
-  setSelectedClient('');
+  setSelectedClient(null);
   setShowNewClientForm(false);
 };

@@ -61,7 +61,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
   onUpdate 
 }) => {
   const [title, setTitle] = useState(phase.title);
-  const [startDate, setStartDate] = useState(phase.startDate || jobStartDate);
+  const [startDate, setStartDate] = useState(jobStartDate);
   const [description, setDescription] = useState(phase.description);
   const [tasks, setTasks] = useState<Task[]>(phase.tasks);
   const [materials, setMaterials] = useState<Material[]>(phase.materials);
@@ -73,9 +73,6 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
   const [attempted, setAttempted] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isAddingNote, setIsAddingNote] = useState(false);
-  const isAnyTaskExpanded = tasks.some(task => task.isExpanded) || isAddingTask;
-  const isAnyMaterialExpanded = materials.some(material => material.isExpanded) || isAddingMaterial;
-  const isAnyNoteExpanded = notes.some(note => note.isExpanded) || isAddingNote;
 
   const getInputClassName = (value: string, field: string) => {
     const baseClass = "w-full p-2 border rounded";
@@ -86,33 +83,42 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
   };
 
   useEffect(() => {
-    if (jobStartDate && startDate && jobStartDate !== startDate) {
-      const diffDays = calculateDateDiff(startDate, jobStartDate);
-      
-      const updatedTasks = tasks.map(task => ({
-        ...task,
-        startDate: adjustDate(task.startDate, diffDays),
-        dueDate: adjustDate(task.dueDate, diffDays)
-      }));
-      
-      const updatedMaterials = materials.map(material => ({
-        ...material,
-        dueDate: adjustDate(material.dueDate, diffDays)
-      }));
-      
-      setTasks(updatedTasks);
-      setMaterials(updatedMaterials);
+    if (jobStartDate && !startDate) {
       setStartDate(jobStartDate);
-      
-      onUpdate({
-        ...phase,
-        startDate: jobStartDate,
-        tasks: updatedTasks,
-        materials: updatedMaterials
-      });
     }
-  }, [jobStartDate, startDate, tasks, materials, phase, onUpdate]);
+  }, [jobStartDate, startDate]);
 
+  const addNewTask = () => {
+    setIsAddingTask(true);
+  };
+
+  const saveTask = (newTask: Task) => {
+    const taskWithId = {
+      ...newTask,
+      id: newTask.id || `task-${Date.now()}`,
+      isExpanded: false
+    };
+    
+    setTasks(prevTasks => {
+      if (newTask.id === '') {
+        return [...prevTasks, taskWithId];
+      } else {
+        return prevTasks.map(task => 
+          task.id === taskWithId.id ? taskWithId : task
+        );
+      }
+    });
+    setIsAddingTask(false);
+  };
+
+  // When updating tasks, preserve their dates
+  const updateTask = (updatedTask: Task) => {
+    setTasks(prevTasks => prevTasks.map(task => 
+      task.id === updatedTask.id ? updatedTask : task
+    ));
+  };
+
+  // When phase date changes, don't modify task dates
   const handleInputChange = (field: string, value: string) => {
     switch(field) {
       case 'title':
@@ -123,33 +129,11 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
         });
         break;
       case 'startDate':
-        if (value && !isNaN(new Date(value).getTime())) {
-          const diffDays = calculateDateDiff(startDate, value);
-          
-          // Update tasks
-          const updatedTasks = tasks.map(task => ({
-            ...task,
-            startDate: adjustDate(task.startDate, diffDays),
-            dueDate: adjustDate(task.dueDate, diffDays)
-          }));
-          
-          // Update materials
-          const updatedMaterials = materials.map(material => ({
-            ...material,
-            dueDate: adjustDate(material.dueDate, diffDays)
-          }));
-          
-          setTasks(updatedTasks);
-          setMaterials(updatedMaterials);
-          setStartDate(value);
-          
-          onUpdate({
-            ...phase,
-            startDate: value,
-            tasks: updatedTasks,
-            materials: updatedMaterials
-          });
-        }
+        setStartDate(value);
+        onUpdate({
+          ...phase,
+          startDate: value
+        });
         break;
       case 'description':
         setDescription(value);
@@ -161,61 +145,6 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     }
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
-  
-  const calculateDateDiff = (oldDate: string, newDate: string): number => {
-    if (!oldDate || !newDate) return 0;
-    const oldDateTime = new Date(oldDate).getTime();
-    const newDateTime = new Date(newDate).getTime();
-    return Math.floor((newDateTime - oldDateTime) / (1000 * 60 * 60 * 24));
-  };
-  
-  const adjustDate = (dateStr: string, diffDays: number): string => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() + diffDays);
-    return date.toISOString().split('T')[0];
-  };
-  
-  const handleSave = () => {
-    setAttempted(true);
-    const newErrors: {[key: string]: string} = {};
-    if (!title.trim()) newErrors.title = 'Title is required';
-    if (!startDate) newErrors.startDate = 'Start date is required';
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length === 0) {
-      setIsMinimized(!isMinimized);
-    }
-  };
-
-  const addNewTask = () => {
-    if (!isAnyTaskExpanded && !isAnyMaterialExpanded) {
-      setIsAddingTask(true);
-    }
-  };
-
-  const saveTask = (newTask: Task) => {
-    const taskWithId = {
-      ...newTask,
-      id: newTask.id || `task-${Date.now()}`,
-      isExpanded: false
-    };
-    
-    if (newTask.id === '') {
-      addItem(tasks, setTasks, taskWithId);
-    } else {
-      setTasks(tasks.map(task => 
-        task.id === taskWithId.id ? taskWithId : task
-      ));
-    }
-    setIsAddingTask(false);
-  };
-
-  const updateTask = (updatedTask: Task) => {
-    setTasks(tasks.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
-    ));
-  };
 
   const deleteTask = (taskId: string) => {
     if (taskId) {
@@ -224,13 +153,11 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     setIsAddingTask(false);
   };
 
-
+  // Material handlers
   const addNewMaterial = () => {
-    if (!isAnyTaskExpanded && !isAnyMaterialExpanded) {
-      setIsAddingMaterial(true);
-    }
+    setIsAddingMaterial(true);
   };
-  
+
   const saveMaterial = (newMaterial: Material) => {
     const materialWithId = {
       ...newMaterial,
@@ -247,13 +174,13 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     }
     setIsAddingMaterial(false);
   };
-  
+
   const updateMaterial = (updatedMaterial: Material) => {
     setMaterials(materials.map(material => 
       material.id === updatedMaterial.id ? updatedMaterial : material
     ));
   };
-  
+
   const deleteMaterial = (materialId: string) => {
     if (materialId) {
       deleteItem(materials, materialId, setMaterials);
@@ -261,12 +188,11 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     setIsAddingMaterial(false);
   };
 
+  // Note handlers
   const addNewNote = () => {
-    if (!isAnyTaskExpanded && !isAnyMaterialExpanded && !isAnyNoteExpanded) {
-      setIsAddingNote(true);
-    }
+    setIsAddingNote(true);
   };
-  
+
   const saveNote = (newNote: Note) => {
     const noteWithId = {
       ...newNote,
@@ -283,18 +209,30 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     }
     setIsAddingNote(false);
   };
-  
+
   const updateNote = (updatedNote: Note) => {
     setNotes(notes.map(note => 
       note.id === updatedNote.id ? updatedNote : note
     ));
   };
-  
+
   const deleteNote = (noteId: string) => {
     if (noteId) {
       setNotes(notes.filter(note => note.id !== noteId));
     }
     setIsAddingNote(false);
+  };
+
+  const handleSave = () => {
+    setAttempted(true);
+    const newErrors: {[key: string]: string} = {};
+    if (!title.trim()) newErrors.title = 'Title is required';
+    if (!startDate) newErrors.startDate = 'Start date is required';
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length === 0) {
+      setIsMinimized(!isMinimized);
+    }
   };
 
   const handleDelete = () => {
@@ -319,7 +257,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 : 'bg-green-500 hover:bg-green-600'
             }`}
           >
-            {isMinimized ? 'Edit' : 'Save'}
+            {isMinimized ? 'Edit' : 'Done'}
           </button>
           <button
             onClick={handleDelete}
@@ -329,7 +267,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           </button>
         </div>
       </div>
-  
+
       {!isMinimized && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -337,12 +275,12 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
                 Phase Title<span className="text-red-500">*</span>
               </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  className={getInputClassName(title, 'title')}
-                />
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className={getInputClassName(title, 'title')}
+              />
               {attempted && errors.title && (
                 <p className="text-red-500 text-xs mt-1">{errors.title}</p>
               )}
@@ -363,19 +301,19 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               )}
             </div>
           </div>
-  
+
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
               Description
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => handleInputChange('description', e.target.value)}
               className="w-full p-2 border rounded"
               rows={3}
             />
           </div>
-  
+
           {/* Tasks Section */}
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -383,12 +321,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               {!isAddingTask && (
                 <button 
                   onClick={addNewTask} 
-                  className={`w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center ${
-                    isAnyTaskExpanded || isAnyMaterialExpanded 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-zinc-100'
-                  }`}
-                  disabled={isAnyTaskExpanded || isAnyMaterialExpanded}
+                  className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
                 >
                   <FaPlus size={12} />
                 </button>
@@ -403,7 +336,6 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onDelete={() => deleteTask(task.id)}
                 phaseStartDate={startDate}
                 contacts={contacts}
-                isAnyTaskExpanded={isAnyTaskExpanded}
               />
             ))}
             
@@ -423,11 +355,10 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onDelete={() => setIsAddingTask(false)}
                 phaseStartDate={startDate}
                 contacts={contacts}
-                isAnyTaskExpanded={true}
               />
             )}
           </div>
-  
+
           {/* Materials Section */}
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -435,12 +366,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               {!isAddingMaterial && (
                 <button 
                   onClick={addNewMaterial} 
-                  className={`w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center ${
-                    isAnyTaskExpanded || isAnyMaterialExpanded 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-zinc-100'
-                  }`}
-                  disabled={isAnyTaskExpanded || isAnyMaterialExpanded}
+                  className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
                 >
                   <FaPlus size={12} />
                 </button>
@@ -454,7 +380,6 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onDelete={() => deleteMaterial(material.id)}
                 phaseStartDate={startDate}
                 contacts={contacts}
-                isAnyMaterialExpanded={isAnyMaterialExpanded}
               />
             ))}
             {isAddingMaterial && (
@@ -471,11 +396,10 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onDelete={() => setIsAddingMaterial(false)}
                 phaseStartDate={startDate}
                 contacts={contacts}
-                isAnyMaterialExpanded={true}
               />
             )}
           </div>
-  
+
           {/* Notes Section */}
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -483,12 +407,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               {!isAddingNote && (
                 <button 
                   onClick={addNewNote} 
-                  className={`w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center ${
-                    isAnyTaskExpanded || isAnyMaterialExpanded || isAnyNoteExpanded
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-zinc-100'
-                  }`}
-                  disabled={isAnyTaskExpanded || isAnyMaterialExpanded || isAnyNoteExpanded}
+                  className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
                 >
                   <FaPlus size={12} />
                 </button>
@@ -516,7 +435,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           </div>
         </div>
       )}
-  
+
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded">
@@ -540,6 +459,6 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
       )}
     </CardFrame>
   );
-}
+};
 
 export default PhaseCard;

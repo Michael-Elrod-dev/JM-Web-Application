@@ -26,17 +26,17 @@ const NoteCard: React.FC<NoteCardProps> = ({
     setLocalNote(note);
   }, [note]);
 
-  const handleSave = () => {
+  const handleDone = () => {
     if (localNote.content.trim()) {
       onUpdate({ ...localNote, isExpanded: false });
     } else {
-      onDelete(); // Delete if empty
+      onDelete();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && e.ctrlKey) {
-      handleSave();
+      handleDone();
     }
   };
 
@@ -55,10 +55,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
           />
           <div className="flex justify-end gap-2">
             <button
-              onClick={handleSave}
+              onClick={handleDone}
               className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
-              Save
+              Done
             </button>
             <button
               onClick={onDelete}

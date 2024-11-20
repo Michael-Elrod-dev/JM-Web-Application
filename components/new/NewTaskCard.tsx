@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Contact } from '../../data/contactsData';
 import ContactCard from '../ContactCard';
-import { calculateEndDate, calculateDuration } from '../../handlers/phases';
+import { calculateEndDate } from '../../handlers/phases';
 
 interface TaskCardProps {
   task: Task;
@@ -12,7 +12,6 @@ interface TaskCardProps {
   onDelete: () => void;
   phaseStartDate: string;
   contacts: Contact[];
-  isAnyTaskExpanded?: boolean;
 }
 
 interface Task {
@@ -26,45 +25,49 @@ interface Task {
   isExpanded: boolean;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStartDate, contacts, isAnyTaskExpanded }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStartDate, contacts }) => {
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [localTask, setLocalTask] = useState<Task>(task);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const isNewTask = task.id === '';
 
   useEffect(() => {
-    setLocalTask(task);
-  }, [task]);
+    if (task.id === '' && !task.startDate) {
+      setLocalTask(prev => ({
+        ...prev,
+        startDate: phaseStartDate
+      }));
+    }
+  }, [task.id, task.startDate, phaseStartDate]);
+
+  const handleStartDateChange = (newStartDate: string) => {
+    if (new Date(newStartDate) >= new Date(phaseStartDate)) {
+      setLocalTask(prev => ({
+        ...prev,
+        startDate: newStartDate
+      }));
+      setErrors(prev => ({ ...prev, startDate: '' }));
+    } else {
+      setErrors(prev => ({ 
+        ...prev, 
+        startDate: 'Task cannot start before phase start date' 
+      }));
+    }
+  };
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return '';
-    const date = new Date(dateString);
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('en-US', {
       month: '2-digit',
       day: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'UTC'
     });
-  };
-  
-  const handleExpand = () => {
-    if (!isAnyTaskExpanded || localTask.isExpanded) {
-      setLocalTask(prev => ({ ...prev, isExpanded: true }));
-    }
   };
 
   const handleInputChange = (field: keyof Task, value: string) => {
     setLocalTask(prev => ({ ...prev, [field]: value }));
     setErrors(prev => ({ ...prev, [field]: '' }));
-  };
-
-  const handleStartDateChange = (newStartDate: string) => {
-    const newDueDate = calculateEndDate(newStartDate, parseInt(localTask.duration) || 0);
-    setLocalTask(prev => ({
-      ...prev,
-      startDate: newStartDate,
-      dueDate: newDueDate,
-    }));
-    setErrors(prev => ({ ...prev, startDate: '', dueDate: '' }));
   };
 
   const handleDurationChange = (newDuration: string) => {
@@ -97,20 +100,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleDone = () => {
     if (validateTask()) {
-      const updatedTask = { ...localTask, isExpanded: false };
-      setLocalTask(updatedTask);
+      const updatedTask = {
+        ...localTask,
+        isExpanded: false
+      };
       onUpdate(updatedTask);
-    }
-  };
-
-  const handleCancel = () => {
-    if (isNewTask) {
-      onDelete();
-    } else {
-      setLocalTask({ ...task, isExpanded: false });
-      onUpdate({ ...task, isExpanded: false });
+      setLocalTask(updatedTask);
     }
   };
 
@@ -206,10 +203,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
           </div>
           <div className="mt-4 flex justify-end">
             <button
-              onClick={handleSave}
+              onClick={handleDone}
               className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
-              Save
+              Done
             </button>
             <button
               onClick={handleDelete}
@@ -229,9 +226,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
           </div>
           <div className="flex justify-end">
             <button
-              onClick={() => setLocalTask(prev => ({ ...prev, isExpanded: true }))}
+              onClick={() => {
+                const updatedTask = { ...localTask, isExpanded: true };
+                setLocalTask(updatedTask);
+                onUpdate(updatedTask);
+              }}
               className="mr-2 text-zinc-400 hover:text-blue-500 transition-colors"
-              disabled={isAnyTaskExpanded && !localTask.isExpanded}
             >
               <FaEdit size={18} />
             </button>

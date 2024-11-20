@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Contact } from '../../data/contactsData';
 import ContactCard from '../ContactCard';
-import { calculateDuration } from '../../handlers/phases';
 
 interface MaterialCardProps {
   material: Material;
@@ -10,7 +9,6 @@ interface MaterialCardProps {
   onDelete: () => void;
   phaseStartDate: string;
   contacts: Contact[];
-  isAnyMaterialExpanded?: boolean;
 }
 
 interface Material {
@@ -28,23 +26,31 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   onDelete, 
   phaseStartDate, 
   contacts,
-  isAnyMaterialExpanded 
 }) => {
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [localMaterial, setLocalMaterial] = useState<Material>(material);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [attempted, setAttempted] = useState(false);
-  const isNewMaterial = material.id === '';
 
-  // Add date formatting function
+  useEffect(() => {
+    if (material.id === '' && !material.dueDate) {
+      setLocalMaterial(prev => ({
+        ...prev,
+        dueDate: phaseStartDate
+      }));
+    }
+  }, [material.id, material.dueDate, phaseStartDate]);
+
   const formatDate = (dateString: string): string => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
-    });
+    const date = new Date(dateString + 'T00:00:00Z');
+    // Use UTC methods to avoid timezone shifts
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+      .toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
   };
 
   const handleDelete = () => {
@@ -52,8 +58,21 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   };
 
   const handleInputChange = (field: keyof Material, value: string) => {
-    setLocalMaterial(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
+    if (field === 'dueDate') {
+      // Only validate that material can't be due before phase starts
+      if (new Date(value) >= new Date(phaseStartDate)) {
+        setLocalMaterial(prev => ({ ...prev, [field]: value }));
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      } else {
+        setErrors(prev => ({ 
+          ...prev, 
+          dueDate: 'Due date cannot be before phase start date' 
+        }));
+      }
+    } else {
+      setLocalMaterial(prev => ({ ...prev, [field]: value }));
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   const handleContactSelect = (contact: Contact) => {
@@ -73,9 +92,14 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleDone = () => {
     if (validateMaterial()) {
-      onUpdate({ ...localMaterial, isExpanded: false });
+      const updatedMaterial = {
+        ...localMaterial,
+        isExpanded: false
+      };
+      onUpdate(updatedMaterial);
+      setLocalMaterial(updatedMaterial);
     }
   };
 
@@ -158,10 +182,10 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
           </div>
           <div className="mt-4 flex justify-end">
             <button
-              onClick={handleSave}
+              onClick={handleDone}
               className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
-              Save
+              Done
             </button>
             <button
               onClick={handleDelete}
@@ -181,9 +205,12 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
           </div>
           <div className="flex justify-end">
             <button
-              onClick={() => setLocalMaterial(prev => ({ ...prev, isExpanded: true }))}
+              onClick={() => {
+                const updatedMaterial = { ...localMaterial, isExpanded: true };
+                setLocalMaterial(updatedMaterial);
+                onUpdate(updatedMaterial);
+              }}
               className="mr-2 text-zinc-400 hover:text-blue-500 transition-colors"
-              disabled={isAnyMaterialExpanded && !localMaterial.isExpanded}
             >
               <FaEdit size={18} />
             </button>

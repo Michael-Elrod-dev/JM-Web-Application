@@ -3,8 +3,14 @@ src/
     ├── app/
     │   ├── api/
     │   │   ├── jobs/
+    │   │   │   ├── [id]/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── new/
+    │   │   │   │   └── route.ts
     │   │   │   └── route.ts
     │   │   └── users/
+    │   │       ├── clients/
+    │   │       │   └── route.ts
     │   │       └── route.ts
     │   ├── calendar/
     │   │   └── page.tsx
@@ -16,8 +22,6 @@ src/
     │   │   ├── active/
     │   │   │   └── page.tsx
     │   │   ├── closed/
-    │   │   │   └── page.tsx
-    │   │   ├── deleted/
     │   │   │   └── page.tsx
     │   │   ├── new/
     │   │   │   └── page.tsx
@@ -36,19 +40,21 @@ src/
     │   ├── page.tsx
     │   └── providers.tsx
     └── components/
+        ├── new/
+        │   ├── ClientSearch.tsx
+        │   ├── NewJobFrame.tsx
+        │   ├── NewMaterialCard.tsx
+        │   ├── NewNoteCard.tsx
+        │   ├── NewPhaseCard.tsx
+        │   └── NewTaskCard.tsx
         ├── CardFrame.tsx
         ├── ContactCard.tsx
         ├── DarkModeToggle.tsx
-        ├── DetailedJobView.tsx
         ├── HeaderTabs.tsx
         ├── JobButton.tsx
         ├── JobFrame.tsx
         ├── LargeJobFrame.tsx
         ├── MaterialsCard.tsx
-        ├── NewJobFrame.tsx
-        ├── NewMaterialCard.tsx
-        ├── NewPhaseCard.tsx
-        ├── NewTaskCard.tsx
         ├── PhaseCard.tsx
         ├── PieChart.tsx
         ├── SideBar.tsx
