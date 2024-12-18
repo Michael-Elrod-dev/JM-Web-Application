@@ -1,19 +1,8 @@
 "use client";
 
 import React from 'react';
+import { TimelineProps } from '../app/types/props';
 
-interface TimelineProps {
-  phases: {
-    id: number;
-    name: string;
-    startDate: string;
-    endDate: string;
-    color: string;
-  }[];
-  startDate: string;
-  endDate: string;
-  currentWeek: number;
-}
 
 const Timeline: React.FC<TimelineProps> = ({ phases, startDate, endDate, currentWeek }) => {
   const phaseHeight = 28;

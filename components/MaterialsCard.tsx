@@ -1,6 +1,7 @@
 // components/MaterialsCard.tsx
 import React, { useState } from 'react';
 import SmallCardFrame from './SmallCardFrame';
+import StatusButton from './StatusButton';
 
 interface User {
   user_id: number;
@@ -15,7 +16,7 @@ interface Material {
   material_duedate: string;
   material_status: string;
   material_description: string;
-  users: User[];  // Added this
+  users: User[];
 }
 
 interface MaterialsCardProps {
@@ -24,12 +25,29 @@ interface MaterialsCardProps {
 
 const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
   const [expandedMaterialId, setExpandedMaterialId] = useState<number | null>(null);
+  const [localMaterials, setLocalMaterials] = useState(materials);
+
+  const handleStatusChange = (materialId: number, newStatus: string) => {
+    setLocalMaterials(prevMaterials =>
+      prevMaterials.map(material =>
+        material.material_id === materialId 
+          ? { ...material, material_status: newStatus } 
+          : material
+      )
+    );
+  };
+
+  const handleCardClick = (e: React.MouseEvent, materialId: number) => {
+    if (!(e.target as HTMLElement).closest('.status-button')) {
+      setExpandedMaterialId(expandedMaterialId === materialId ? null : materialId);
+    }
+  };
 
   return (
     <div className="space-y-2">
       <h4 className="text-md font-semibold mb-2">Materials</h4>
       <div className="space-y-2">
-        {materials.map((material) => {
+        {localMaterials.map((material) => {
           const isExpanded = expandedMaterialId === material.material_id;
           const dueDate = new Date(material.material_duedate).toLocaleDateString('en-US', {
             month: 'numeric',
@@ -39,7 +57,7 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
           return (
             <div
               key={material.material_id}
-              onClick={() => setExpandedMaterialId(isExpanded ? null : material.material_id)}
+              onClick={(e) => handleCardClick(e, material.material_id)}
               className="cursor-pointer"
             >
               <SmallCardFrame>
@@ -47,13 +65,14 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                   <span className="text-sm font-medium col-span-1">{material.material_title}</span>
                   <span className="text-sm text-center col-span-1">{dueDate}</span>
                   <div className="flex justify-end col-span-1">
-                    <span className={`text-sm px-3 py-1 rounded ${
-                      material.material_status === 'Complete' 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-red-500 text-white'
-                    }`}>
-                      {material.material_status}
-                    </span>
+                    <div className="status-button">
+                      <StatusButton
+                        id={material.material_id}
+                        type="material"
+                        currentStatus={material.material_status}
+                        onStatusChange={(newStatus) => handleStatusChange(material.material_id, newStatus)}
+                      />
+                    </div>
                   </div>
                 </div>
                 

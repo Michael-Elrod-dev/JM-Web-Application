@@ -5,29 +5,23 @@ import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Contact } from '../../data/contactsData';
 import ContactCard from '../ContactCard';
 import { calculateEndDate } from '../../handlers/phases';
+import { FormTask } from '../../app/types/database';
 
 interface TaskCardProps {
-  task: Task;
-  onUpdate: (updatedTask: Task) => void;
+  task: FormTask;
+  onUpdate: (updatedTask: FormTask) => void;
   onDelete: () => void;
   phaseStartDate: string;
   contacts: Contact[];
 }
 
-interface Task {
-  id: string;
-  title: string;
-  startDate: string;
-  duration: string;
-  dueDate: string;
-  status: string;
-  details: string;
-  isExpanded: boolean;
-}
-
 const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStartDate, contacts }) => {
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
-  const [localTask, setLocalTask] = useState<Task>(task);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>(
+    task.selectedContacts?.map(id => 
+      contacts.find(c => c.id === id.toString()) as Contact
+    ).filter(Boolean) || []
+  );
+  const [localTask, setLocalTask] = useState<FormTask>(task);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
@@ -65,7 +59,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     });
   };
 
-  const handleInputChange = (field: keyof Task, value: string) => {
+  const handleInputChange = (field: keyof FormTask, value: string) => {
     setLocalTask(prev => ({ ...prev, [field]: value }));
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
@@ -104,6 +98,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     if (validateTask()) {
       const updatedTask = {
         ...localTask,
+        selectedContacts: selectedContacts.map(contact => ({ id: contact.id })),
         isExpanded: false
       };
       onUpdate(updatedTask);
@@ -154,6 +149,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
               />
               {errors.duration && <p className="text-red-500 text-xs">{errors.duration}</p>}
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-2">
           </div>
           <div className="mb-2">
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Details</label>

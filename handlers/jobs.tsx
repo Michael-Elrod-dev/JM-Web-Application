@@ -1,51 +1,9 @@
 // handlers/jobs.tsx
 
-import { NewJobData } from '@/app/types/jobs';
+import { NewJob, FormPhase, User } from '../app/types/database';
 
-interface Task {
-  id: string;
-  title: string;
-  startDate: string;
-  duration: string;
-  dueDate: string;
-  status: string;
-  details: string;
-  isExpanded: boolean;
-}
 
-interface Material {
-  id: string;
-  title: string;
-  dueDate: string;
-  status: string;
-  details: string;
-  isExpanded: boolean;
-}
-
-interface Note {
-  id: string;
-  content: string;
-  isExpanded: boolean;
-}
-
-interface Phase {
-  id: number;
-  title: string;
-  startDate: string;
-  description: string;
-  tasks: Task[];
-  materials: Material[];
-  notes: Note[];
-}
-
-interface Client {
-  user_id: number;
-  user_name: string;
-  user_email: string;
-  user_phone: string;
-}
-
-export const createJob = async (jobData: NewJobData) => {
+export async function createJob(jobData: NewJob): Promise<{ jobId: number }> {
   try {
     const response = await fetch('/api/jobs/new', {
       method: 'POST',
@@ -56,23 +14,92 @@ export const createJob = async (jobData: NewJobData) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create job');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create job');
     }
 
-    return await response.json();
+    return response.json();
   } catch (error) {
-    console.error('Error creating job:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(`Error creating job: ${error.message}`);
+    }
+    throw new Error('An unexpected error occurred while creating the job');
   }
-};
+}
+
+export function transformFormDataToNewJob(formData: {
+  jobTitle: string;
+  startDate: string;
+  jobLocation?: string;
+  description?: string;
+  selectedClient?: { user_id: number } | null;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  phases: Array<{
+    title: string;
+    startDate: string;
+    description: string;
+    tasks: Array<{
+      title: string;
+      startDate: string;
+      duration: string;
+      details?: string;
+      selectedContacts?: Array<{ id: string }>;
+    }>;
+    materials: Array<{
+      title: string;
+      dueDate: string;
+      details?: string;
+      selectedContacts?: Array<{ id: string }>;
+    }>;
+    notes: Array<{
+      content: string;
+    }>;
+  }>;
+}): NewJob {
+  return {
+    title: formData.jobTitle,
+    startDate: formData.startDate,
+    location: formData.jobLocation,
+    description: formData.description,
+    client: {
+      user_id: formData.selectedClient?.user_id,
+      user_name: formData.clientName,
+      user_email: formData.clientEmail,
+      user_phone: formData.clientPhone,
+    },
+    phases: formData.phases.map(phase => ({
+      title: phase.title,
+      startDate: phase.startDate,
+      description: phase.description,
+      tasks: phase.tasks.map(task => ({
+        title: task.title,
+        startDate: task.startDate,
+        duration: parseInt(task.duration),
+        details: task.details,
+        assignedUsers: task.selectedContacts?.map(contact => parseInt(contact.id)) || [],
+      })),
+      materials: phase.materials.map(material => ({
+        title: material.title,
+        dueDate: material.dueDate,
+        details: material.details,
+        assignedUsers: material.selectedContacts?.map(contact => parseInt(contact.id)) || [],
+      })),
+      notes: phase.notes.map(note => ({
+        content: note.content,
+      })),
+    })),
+  };
+}
+
 export const handleAddPhase = (
-  phases: Phase[], 
-  setPhases: React.Dispatch<React.SetStateAction<Phase[]>>,
+  phases: FormPhase[], 
+  setPhases: React.Dispatch<React.SetStateAction<FormPhase[]>>,
   jobStartDate?: string
 ) => {
-  const newPhase: Phase = {
-    id: Date.now(),
+  const newPhase: FormPhase = {
+    tempId: `phase-${Date.now()}`,  // Generate temporary ID
     title: '',
     startDate: jobStartDate || '',
     description: '',
@@ -85,8 +112,8 @@ export const handleAddPhase = (
 
 export const handleDeletePhase = (
   index: number,
-  phases: Phase[],
-  setPhases: (phases: Phase[]) => void
+  phases: FormPhase[],
+  setPhases: React.Dispatch<React.SetStateAction<FormPhase[]>>
 ) => {
   const newPhases = phases.filter((_, i) => i !== index);
   setPhases(newPhases);
@@ -100,8 +127,8 @@ export const handleCancel = (
   setStartDate: (value: string) => void,
   setJobLocation: (value: string) => void,
   setDescription: (value: string) => void,
-  setPhases: (value: Phase[]) => void,
-  setSelectedClient: (value: Client | null) => void,
+  setPhases: React.Dispatch<React.SetStateAction<FormPhase[]>>,
+  setSelectedClient: React.Dispatch<React.SetStateAction<User | null>>,
   setShowNewClientForm: (value: boolean) => void
 ) => {
   setJobTitle('');

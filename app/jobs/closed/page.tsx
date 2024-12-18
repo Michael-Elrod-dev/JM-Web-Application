@@ -1,36 +1,14 @@
-// app/jobs/closed/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import LargeJobFrame from '../../../components/LargeJobFrame';
 import { useSearchParams } from 'next/navigation';
-
-interface Phase {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  color: string;
-}
-
-interface Job {
-  id: number;
-  jobName: string;
-  dateRange: string;
-  currentWeek: number;
-  phases: Phase[];
-  overdue: number;
-  sevenDaysPlus: number;
-  nextSevenDays: number;
-  tasks: string[];
-  materials: string[];
-  workers: string[];
-}
+import { JobDetailView } from '../../types/views';
 
 export default function ClosedJobsPage() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || '');
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<JobDetailView[]>([]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -38,8 +16,8 @@ export default function ClosedJobsPage() {
         const response = await fetch('/api/jobs?view=detailed&status=closed');
         const data = await response.json();
         
-        // Transform the data to match the expected format
-        const transformedJobs = data.jobs.map((job: any) => ({
+        // Transform the data to match JobDetailView
+        const transformedJobs = data.jobs.map((job: any): JobDetailView => ({
           id: job.job_id,
           jobName: job.job_title,
           dateRange: job.date_range,
@@ -49,7 +27,10 @@ export default function ClosedJobsPage() {
             name: phase.name,
             startDate: phase.startDate,
             endDate: phase.endDate,
-            color: phase.color
+            color: phase.color,
+            tasks: [],
+            materials: [],
+            notes: []
           })),
           overdue: job.overdue,
           nextSevenDays: job.nextSevenDays,
@@ -88,17 +69,7 @@ export default function ClosedJobsPage() {
       {filteredJobs.map((job) => (
         <LargeJobFrame 
           key={job.id}
-          id={job.id}
-          jobName={job.jobName}
-          dateRange={job.dateRange}
-          currentWeek={job.currentWeek}
-          phases={job.phases}
-          overdue={job.overdue}
-          sevenDaysPlus={job.sevenDaysPlus}
-          nextSevenDays={job.nextSevenDays}
-          tasks={job.tasks}
-          materials={job.materials}
-          workers={job.workers}
+          {...job}
         />
       ))}
     </>

@@ -1,6 +1,7 @@
 // components/TasksCard.tsx
 import React, { useState } from 'react';
 import SmallCardFrame from './SmallCardFrame';
+import StatusButton from './StatusButton';
 
 interface User {
   user_id: number;
@@ -25,6 +26,7 @@ interface TasksCardProps {
 
 const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
+  const [localTasks, setLocalTasks] = useState(tasks);
 
   const calculateDueDate = (startDate: string, duration: number) => {
     try {
@@ -39,18 +41,32 @@ const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
     }
   };
 
+  const handleStatusChange = (taskId: number, newStatus: string) => {
+    setLocalTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.task_id === taskId ? { ...task, task_status: newStatus } : task
+      )
+    );
+  };
+
+  const handleCardClick = (e: React.MouseEvent, taskId: number) => {
+    if (!(e.target as HTMLElement).closest('.status-button')) {
+      setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <h4 className="text-md font-semibold mb-2">Tasks</h4>
       <div className="space-y-2">
-        {tasks.map((task) => {
+        {localTasks.map((task) => {
           const dueDate = calculateDueDate(task.task_startdate, task.task_duration);
           const isExpanded = expandedTaskId === task.task_id;
 
           return (
             <div
               key={task.task_id}
-              onClick={() => setExpandedTaskId(isExpanded ? null : task.task_id)}
+              onClick={(e) => handleCardClick(e, task.task_id)}
               className="cursor-pointer"
             >
               <SmallCardFrame>
@@ -58,13 +74,14 @@ const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
                   <span className="text-sm font-medium col-span-1">{task.task_title}</span>
                   <span className="text-sm text-center col-span-1">{dueDate}</span>
                   <div className="flex justify-end col-span-1">
-                    <span className={`text-sm px-3 py-1 rounded ${
-                      task.task_status === 'Complete' 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-red-500 text-white'
-                    }`}>
-                      {task.task_status}
-                    </span>
+                    <div className="status-button">
+                      <StatusButton
+                        id={task.task_id}
+                        type="task"
+                        currentStatus={task.task_status}
+                        onStatusChange={(newStatus) => handleStatusChange(task.task_id, newStatus)}
+                      />
+                    </div>
                   </div>
                 </div>
                 

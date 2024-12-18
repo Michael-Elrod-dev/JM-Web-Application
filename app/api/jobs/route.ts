@@ -1,7 +1,7 @@
 // app/api/jobs/route.ts
 import { NextResponse } from 'next/server';
 import pool from '@/app/lib/db';
-import { RowDataPacket, OkPacket } from 'mysql2';
+import { RowDataPacket } from 'mysql2';
 
 // Add interfaces for our data types
 interface Task extends RowDataPacket {

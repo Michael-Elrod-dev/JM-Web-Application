@@ -1,85 +1,74 @@
 // components/PhaseCard.tsx
 
-import React, { useState, useEffect } from 'react';
-import { contacts } from '../../data/contactsData';
-import CardFrame from '../CardFrame';
-import TaskCard from './NewTaskCard';
-import MaterialCard from './NewMaterialCard';
-import NoteCard from './NewNoteCard';
-import { FaPlus } from 'react-icons/fa';
-import { deleteItem, addItem } from '../../handlers/phases';
+import React, { useState, useEffect } from "react";
+import { contacts } from "../../data/contactsData";
+import CardFrame from "../CardFrame";
+import TaskCard from "./NewTaskCard";
+import MaterialCard from "./NewMaterialCard";
+import NoteCard from "./NewNoteCard";
+import { FaPlus } from "react-icons/fa";
+import { PhaseCardProps } from "@/app/types/props";
 
-interface PhaseCardProps {
-  phase: Phase;
-  phaseNumber: number;
-  onDelete: () => void;
-  jobStartDate: string;
-  onUpdate: (updatedPhase: Phase) => void;
-}
+import {
+  FormTask,
+  FormMaterial,
+  FormNote,
+} from "../../app/types/database";
 
-interface Phase {
-  id: number;
-  title: string;
-  startDate: string;
-  description: string;
-  tasks: Task[];
-  materials: Material[];
-  notes: Note[];
-}
+const emptyTask: FormTask = {
+  id: "",
+  title: "",
+  startDate: "",
+  duration: "",
+  details: "",
+  isExpanded: true,
+  selectedContacts: [],
+};
 
-interface Task {
-  id: string;
-  title: string;
-  startDate: string;
-  duration: string;
-  dueDate: string;
-  status: string;
-  details: string;
-  isExpanded: boolean;
-}
+const emptyMaterial: FormMaterial = {
+  id: "",
+  title: "",
+  dueDate: "",
+  details: "",
+  isExpanded: true,
+  selectedContacts: [],
+};
 
-interface Material {
-  id: string;
-  title: string;
-  dueDate: string;
-  status: string;
-  details: string;
-  isExpanded: boolean;
-}
+const emptyNote: FormNote = {
+  id: "",
+  content: "",
+  isExpanded: true,
+};
 
-interface Note {
-  id: string;
-  content: string;
-  isExpanded: boolean;
-}
-
-const PhaseCard: React.FC<PhaseCardProps> = ({ 
-  phase, 
-  phaseNumber, 
-  onDelete, 
+const PhaseCard: React.FC<PhaseCardProps> = ({
+  phase,
+  phaseNumber,
+  onDelete,
   jobStartDate,
-  onUpdate 
+  onUpdate,
 }) => {
   const [title, setTitle] = useState(phase.title);
   const [startDate, setStartDate] = useState(jobStartDate);
   const [description, setDescription] = useState(phase.description);
-  const [tasks, setTasks] = useState<Task[]>(phase.tasks);
-  const [materials, setMaterials] = useState<Material[]>(phase.materials);
-  const [notes, setNotes] = useState<Note[]>(phase.notes || []);
+  const [tasks, setTasks] = useState<FormTask[]>(phase.tasks);
+  const [materials, setMaterials] = useState<FormMaterial[]>(phase.materials);
+  const [notes, setNotes] = useState<FormNote[]>(phase.notes || []);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [attempted, setAttempted] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isAddingNote, setIsAddingNote] = useState(false);
 
   const getInputClassName = (value: string, field: string) => {
     const baseClass = "w-full p-2 border rounded";
     const errorClass = "border-red-500";
     const normalClass = "border-zinc-300";
-    
-    return `${baseClass} ${attempted && !value && errors[field] ? errorClass : normalClass}`;
+
+    return `${baseClass} ${
+      attempted && !value && errors[field] ? errorClass : normalClass
+    }`;
   };
 
   useEffect(() => {
@@ -92,63 +81,78 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     setIsAddingTask(true);
   };
 
-  const saveTask = (newTask: Task) => {
+  const saveTask = (newTask: FormTask) => {
+    const taskId = newTask.id || `task-${Date.now()}`;
     const taskWithId = {
       ...newTask,
-      id: newTask.id || `task-${Date.now()}`,
-      isExpanded: false
+      id: taskId,
+      isExpanded: false,
     };
-    
-    setTasks(prevTasks => {
-      if (newTask.id === '') {
-        return [...prevTasks, taskWithId];
-      } else {
-        return prevTasks.map(task => 
-          task.id === taskWithId.id ? taskWithId : task
-        );
-      }
+
+    const updatedTasks =
+      newTask.id === ""
+        ? [...tasks, taskWithId]
+        : tasks.map((task) => (task.id === taskId ? taskWithId : task));
+
+    setTasks(updatedTasks);
+    onUpdate({
+      ...phase,
+      tasks: updatedTasks,
+      materials,
+      notes,
     });
     setIsAddingTask(false);
   };
 
-  // When updating tasks, preserve their dates
-  const updateTask = (updatedTask: Task) => {
-    setTasks(prevTasks => prevTasks.map(task => 
+  const updateTask = (updatedTask: FormTask) => {
+    const updatedTasks = tasks.map((task) => 
       task.id === updatedTask.id ? updatedTask : task
-    ));
+    );
+    setTasks(updatedTasks);
+    onUpdate({
+      ...phase,
+      tasks: updatedTasks,
+      materials,
+      notes,
+    });
   };
 
-  // When phase date changes, don't modify task dates
   const handleInputChange = (field: string, value: string) => {
-    switch(field) {
-      case 'title':
+    switch (field) {
+      case "title":
         setTitle(value);
-        onUpdate({
-          ...phase,
-          title: value
-        });
         break;
-      case 'startDate':
+      case "startDate":
         setStartDate(value);
-        onUpdate({
-          ...phase,
-          startDate: value
-        });
         break;
-      case 'description':
+      case "description":
         setDescription(value);
-        onUpdate({
-          ...phase,
-          description: value
-        });
         break;
     }
-    setErrors(prev => ({ ...prev, [field]: '' }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+
+    // Update parent with all changes
+    onUpdate({
+      ...phase,
+      title: field === "title" ? value : title,
+      startDate: field === "startDate" ? value : startDate,
+      description: field === "description" ? value : description,
+      tasks,
+      materials,
+      notes,
+    });
   };
 
   const deleteTask = (taskId: string) => {
     if (taskId) {
-      deleteItem(tasks, taskId, setTasks);
+      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      setTasks(updatedTasks);
+      onUpdate({
+        ...phase,
+        tasks: updatedTasks,
+        materials,
+        notes,
+      });
     }
     setIsAddingTask(false);
   };
@@ -158,32 +162,54 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     setIsAddingMaterial(true);
   };
 
-  const saveMaterial = (newMaterial: Material) => {
+  const saveMaterial = (newMaterial: FormMaterial) => {
+    const materialId = newMaterial.id || `material-${Date.now()}`;
     const materialWithId = {
       ...newMaterial,
-      id: newMaterial.id || `material-${Date.now()}`,
-      isExpanded: false
+      id: materialId,
+      isExpanded: false,
     };
-    
-    if (newMaterial.id === '') {
-      addItem(materials, setMaterials, materialWithId);
-    } else {
-      setMaterials(materials.map(material => 
-        material.id === materialWithId.id ? materialWithId : material
-      ));
-    }
+
+    const updatedMaterials =
+      newMaterial.id === ""
+        ? [...materials, materialWithId]
+        : materials.map((material) =>
+            material.id === materialId ? materialWithId : material
+          );
+
+    setMaterials(updatedMaterials);
+    onUpdate({
+      ...phase,
+      tasks,
+      materials: updatedMaterials,
+      notes,
+    });
     setIsAddingMaterial(false);
   };
 
-  const updateMaterial = (updatedMaterial: Material) => {
-    setMaterials(materials.map(material => 
+  const updateMaterial = (updatedMaterial: FormMaterial) => {
+    const updatedMaterials = materials.map((material) =>
       material.id === updatedMaterial.id ? updatedMaterial : material
-    ));
+    );
+    setMaterials(updatedMaterials);
+    onUpdate({
+      ...phase,
+      tasks,
+      materials: updatedMaterials,
+      notes,
+    });
   };
 
   const deleteMaterial = (materialId: string) => {
     if (materialId) {
-      deleteItem(materials, materialId, setMaterials);
+      const updatedMaterials = materials.filter(material => material.id !== materialId);
+      setMaterials(updatedMaterials);
+      onUpdate({
+        ...phase,
+        tasks,
+        materials: updatedMaterials,
+        notes,
+      });
     }
     setIsAddingMaterial(false);
   };
@@ -193,43 +219,63 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     setIsAddingNote(true);
   };
 
-  const saveNote = (newNote: Note) => {
+  const saveNote = (newNote: FormNote) => {
+    const noteId = newNote.id || `note-${Date.now()}`;
     const noteWithId = {
       ...newNote,
-      id: newNote.id || `note-${Date.now()}`,
-      isExpanded: false
+      id: noteId,
+      isExpanded: false,
     };
-    
-    if (newNote.id === '') {
-      setNotes([...notes, noteWithId]);
-    } else {
-      setNotes(notes.map(note => 
-        note.id === noteWithId.id ? noteWithId : note
-      ));
-    }
+
+    const updatedNotes =
+      newNote.id === ""
+        ? [...notes, noteWithId]
+        : notes.map((note) => (note.id === noteId ? noteWithId : note));
+
+    setNotes(updatedNotes);
+    onUpdate({
+      ...phase,
+      tasks,
+      materials,
+      notes: updatedNotes,
+    });
     setIsAddingNote(false);
   };
 
-  const updateNote = (updatedNote: Note) => {
-    setNotes(notes.map(note => 
+  const updateNote = (updatedNote: FormNote) => {
+    const updatedNotes = notes.map((note) =>
       note.id === updatedNote.id ? updatedNote : note
-    ));
+    );
+    setNotes(updatedNotes);
+    onUpdate({
+      ...phase,
+      tasks,
+      materials,
+      notes: updatedNotes,
+    });
   };
 
   const deleteNote = (noteId: string) => {
     if (noteId) {
-      setNotes(notes.filter(note => note.id !== noteId));
+      const updatedNotes = notes.filter(note => note.id !== noteId);
+      setNotes(updatedNotes);
+      onUpdate({
+        ...phase,
+        tasks,
+        materials,
+        notes: updatedNotes,
+      });
     }
     setIsAddingNote(false);
   };
 
   const handleSave = () => {
     setAttempted(true);
-    const newErrors: {[key: string]: string} = {};
-    if (!title.trim()) newErrors.title = 'Title is required';
-    if (!startDate) newErrors.startDate = 'Start date is required';
+    const newErrors: { [key: string]: string } = {};
+    if (!title.trim()) newErrors.title = "Title is required";
+    if (!startDate) newErrors.startDate = "Start date is required";
     setErrors(newErrors);
-    
+
     if (Object.keys(newErrors).length === 0) {
       setIsMinimized(!isMinimized);
     }
@@ -252,12 +298,12 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           <button
             onClick={handleSave}
             className={`mr-2 px-2 py-1 text-white rounded ${
-              isMinimized 
-                ? 'bg-gray-500 hover:bg-gray-600' 
-                : 'bg-green-500 hover:bg-green-600'
+              isMinimized
+                ? "bg-gray-500 hover:bg-gray-600"
+                : "bg-green-500 hover:bg-green-600"
             }`}
           >
-            {isMinimized ? 'Edit' : 'Done'}
+            {isMinimized ? "Edit" : "Done"}
           </button>
           <button
             onClick={handleDelete}
@@ -278,8 +324,8 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               <input
                 type="text"
                 value={title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className={getInputClassName(title, 'title')}
+                onChange={(e) => handleInputChange("title", e.target.value)}
+                className={getInputClassName(title, "title")}
               />
               {attempted && errors.title && (
                 <p className="text-red-500 text-xs mt-1">{errors.title}</p>
@@ -292,9 +338,9 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
+                onChange={(e) => handleInputChange("startDate", e.target.value)}
                 min={jobStartDate}
-                className={getInputClassName(startDate, 'startDate')}
+                className={getInputClassName(startDate, "startDate")}
               />
               {attempted && errors.startDate && (
                 <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>
@@ -308,7 +354,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
             </label>
             <textarea
               value={description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => handleInputChange("description", e.target.value)}
               className="w-full p-2 border rounded"
               rows={3}
             />
@@ -319,15 +365,15 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-xl font-bold">Tasks</h3>
               {!isAddingTask && (
-                <button 
-                  onClick={addNewTask} 
+                <button
+                  onClick={addNewTask}
                   className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
                 >
                   <FaPlus size={12} />
                 </button>
               )}
             </div>
-            
+
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -338,18 +384,12 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 contacts={contacts}
               />
             ))}
-            
+
             {isAddingTask && (
               <TaskCard
                 task={{
-                  id: '',
-                  title: '',
+                  ...emptyTask,
                   startDate: startDate,
-                  duration: '',
-                  dueDate: '',
-                  status: '',
-                  details: '',
-                  isExpanded: true,
                 }}
                 onUpdate={saveTask}
                 onDelete={() => setIsAddingTask(false)}
@@ -364,8 +404,8 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-xl font-bold">Materials</h3>
               {!isAddingMaterial && (
-                <button 
-                  onClick={addNewMaterial} 
+                <button
+                  onClick={addNewMaterial}
                   className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
                 >
                   <FaPlus size={12} />
@@ -385,12 +425,8 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
             {isAddingMaterial && (
               <MaterialCard
                 material={{
-                  id: '',
-                  title: '',
+                  ...emptyMaterial,
                   dueDate: startDate,
-                  status: '',
-                  details: '',
-                  isExpanded: true,
                 }}
                 onUpdate={saveMaterial}
                 onDelete={() => setIsAddingMaterial(false)}
@@ -405,8 +441,8 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-xl font-bold">Notes</h3>
               {!isAddingNote && (
-                <button 
-                  onClick={addNewNote} 
+                <button
+                  onClick={addNewNote}
                   className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
                 >
                   <FaPlus size={12} />
@@ -423,11 +459,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
             ))}
             {isAddingNote && (
               <NoteCard
-                note={{
-                  id: '',
-                  content: '',
-                  isExpanded: true,
-                }}
+                note={emptyNote}
                 onUpdate={saveNote}
                 onDelete={() => setIsAddingNote(false)}
               />

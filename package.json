@@ -17,6 +17,7 @@
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/react": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
+    "@heroicons/react": "^2.2.0",
     "@react-oauth/google": "^0.12.1",
     "@types/chart.js": "^2.9.41",
     "autoprefixer": "^10.4.20",

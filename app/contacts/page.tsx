@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ContactCard from '@/components/ContactCard';
-import { AppUser } from '@/app/types/app_users';
+import { AppUser } from '@/app/types/users';
 import { fetchUsers } from '@/app/utils/api';
 
 export default function ContactsPage() {

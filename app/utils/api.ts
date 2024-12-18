@@ -1,5 +1,5 @@
 // app/utils/api.ts
-import { AppUser } from '@/app/types/app_users';
+import { AppUser } from '@/app/types/users';
 
 export async function fetchUsers(): Promise<AppUser[]> {
   const response = await fetch('/api/users');

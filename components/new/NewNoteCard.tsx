@@ -1,18 +1,13 @@
-// components/NewNoteCard.tsx
+// components/NoteCard.tsx
 
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { FormNote } from '../../app/types/database';
 
 interface NoteCardProps {
-  note: Note;
-  onUpdate: (updatedNote: Note) => void;
+  note: FormNote;
+  onUpdate: (updatedNote: FormNote) => void;
   onDelete: () => void;
-}
-
-interface Note {
-  id: string;
-  content: string;
-  isExpanded: boolean;
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ 
@@ -20,7 +15,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   onUpdate, 
   onDelete 
 }) => {
-  const [localNote, setLocalNote] = useState<Note>(note);
+  const [localNote, setLocalNote] = useState<FormNote>(note);
 
   useEffect(() => {
     setLocalNote(note);

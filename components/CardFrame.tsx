@@ -1,11 +1,7 @@
 // components/CardFrame.tsx
+import React from 'react';
+import { CardFrameProps } from '../app/types/props';
 
-import React, { ReactNode } from 'react';
-
-interface CardFrameProps {
-  children: ReactNode;
-  className?: string;
-}
 
 const CardFrame: React.FC<CardFrameProps> = ({ children, className = '' }) => {
   return (

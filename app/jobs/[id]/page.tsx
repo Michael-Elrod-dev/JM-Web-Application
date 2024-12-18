@@ -1,73 +1,41 @@
-// app/jobs/[id]/page.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import Timeline from '@/components/Timeline';
-import HeaderTabs from '@/components/HeaderTabs';
+import ContentTabs from '@/components/ContentTabs';
 import CardFrame from '@/components/CardFrame';
 import PhaseCard from '@/components/PhaseCard';
 import ContactCard from '@/components/ContactCard';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
+import { JobDetailView, PhaseView, TaskView, MaterialView, UserView, Tab } from '../../types/views';
 
-interface User {
-  user_id: number;
-  user_name: string;
-  user_phone: string;
-  user_email: string;
-}
-
-interface Task {
-  task_id: number;
-  task_title: string;
-  task_startdate: string;
-  task_duration: number;
-  task_status: string;
-  task_description: string;
-  users: User[];
-}
-
-interface Material {
-  material_id: number;
-  material_title: string;
-  material_duedate: string;
-  material_status: string;
-  material_description: string;
-  users: User[];
-}
-
-interface Phase {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  color: string;
-  tasks: Task[];
-  materials: Material[];
-  note: string[];
-}
-
-interface Job {
-  id: number;
-  jobName: string;
-  dateRange: string;
-  currentWeek: number;
-  phases: Phase[];
-  overdue: number;
-  sevenDaysPlus: number;
-  nextSevenDays: number;
-  tasks: Task[];
-  materials: Material[];
-  workers: string[];
-}
 
 export default function JobDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const [activeTab, setActiveTab] = useState("Overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [job, setJob] = useState<Job | null>(null);
+  const [job, setJob] = useState<JobDetailView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsModalOpen(false);
+      }
+    };
+
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen]);
 
   useEffect(() => {
     const fetchJobDetails = async () => {
@@ -78,15 +46,14 @@ export default function JobDetailPage() {
           throw new Error('Failed to fetch job details');
         }
         const data = await response.json();
+        console.log('Raw API response:', data);
         
-        // Transform the data to match the format used in active jobs
-        const transformedJob = {
+        const transformedJob: JobDetailView = {
           id: data.job.job_id,
           jobName: data.job.job_title,
           dateRange: data.job.date_range,
           currentWeek: data.job.current_week,
-          phases: data.job.phases.map((phase: any) => {
-            // Ensure dates are in YYYY-MM-DD format
+          phases: data.job.phases.map((phase: any): PhaseView => {
             const startDate = new Date(phase.startDate);
             const endDate = new Date(phase.endDate);
             
@@ -96,7 +63,7 @@ export default function JobDetailPage() {
               startDate: startDate.toISOString().split('T')[0],
               endDate: endDate.toISOString().split('T')[0],
               color: phase.color,
-              tasks: phase.tasks.map((task: any) => ({
+              tasks: phase.tasks.map((task: any): TaskView => ({
                 task_id: task.task_id,
                 task_title: task.task_title,
                 task_startdate: new Date(task.task_startdate).toISOString().split('T')[0],
@@ -105,7 +72,7 @@ export default function JobDetailPage() {
                 task_description: task.task_description,
                 users: task.users || []
               })),
-              materials: phase.materials.map((material: any) => ({
+              materials: phase.materials.map((material: any): MaterialView => ({
                 material_id: material.material_id,
                 material_title: material.material_title,
                 material_duedate: new Date(material.material_duedate).toISOString().split('T')[0],
@@ -113,7 +80,7 @@ export default function JobDetailPage() {
                 material_description: material.material_description,
                 users: material.users || []
               })),
-              note: phase.note || []
+              notes: phase.notes || []
             };
           }),
           overdue: data.job.overdue,
@@ -124,13 +91,6 @@ export default function JobDetailPage() {
           workers: data.job.workers || []
         };
     
-        // Convert dateRange dates to YYYY-MM-DD format for Timeline component
-        const [startDate, endDate] = data.job.date_range.split(' - ');
-        const formattedStartDate = new Date(new Date().getFullYear(), parseInt(startDate.split('/')[0]) - 1, parseInt(startDate.split('/')[1]));
-        const formattedEndDate = new Date(new Date().getFullYear(), parseInt(endDate.split('/')[0]) - 1, parseInt(endDate.split('/')[1]));
-        
-        transformedJob.dateRange = `${formattedStartDate.toISOString().split('T')[0]} - ${formattedEndDate.toISOString().split('T')[0]}`;
-        
         setJob(transformedJob);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -145,32 +105,96 @@ export default function JobDetailPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!job) return <div>Job not found</div>;
-
-  const tabs = [
-    { name: "Overview", href: "#" },
-    { name: "My Items", href: "#" },
-    { name: "Tasks", href: "#" },
-    { name: "Materials", href: "#" },
-    { name: "Contacts", href: "#" },
+  
+  const tabs: Tab[] = [
+    { name: "Overview" },
+    { name: "My Items" },
+    { name: "Tasks" },
+    { name: "Materials" },
+    { name: "Floor Plan" },
+    { name: "Contacts" }
   ];
 
   const renderPhaseCards = () => {
-    return job.phases.map((phase, index) => (
+    return job.phases.map((phase: PhaseView, index: number) => (
       <PhaseCard
         key={phase.id}
-        phase={phase}
+        phase={{
+          phase_id: phase.id,
+          name: phase.name,
+          startDate: phase.startDate,
+          endDate: phase.endDate,
+          tasks: phase.tasks,
+          materials: phase.materials,
+          notes: phase.notes
+        }}
         phaseNumber={index + 1}
         showTasks={activeTab === "Overview" || activeTab === "My Items" || activeTab === "Tasks"}
         showMaterials={activeTab === "Overview" || activeTab === "My Items" || activeTab === "Materials"}
       />
     ));
   };
+
+  const renderFloorPlan = () => {
+    return (
+      <CardFrame>
+        <div 
+          className="relative h-[400px] cursor-pointer"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <Image
+            src="/placeholder-floorplan.jpg"
+            alt="Floor Plan"
+            fill
+            className="object-contain"
+          />
+        </div>
+
+        {isModalOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsModalOpen(false);
+              }
+            }}
+          >
+            <div className="bg-white dark:bg-zinc-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden relative">
+              <div className="p-4 flex justify-between items-center border-b">
+                <h3 className="text-lg font-semibold">Floor Plan</h3>
+                <div className="flex gap-2">
+                  <button
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    // TODO: Implement download functionality with S3
+                  >
+                    Download
+                  </button>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="relative h-[80vh] w-full">
+                <Image
+                  src="/placeholder-floorplan.jpg"
+                  alt="Floor Plan"
+                  fill
+                  className="object-contain p-4"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </CardFrame>
+    );
+  };
   
   const renderContacts = () => {
-    // Gather all users from tasks and materials
-    const allUsers = new Map<number, User>();
+    const allUsers = new Map<number, UserView>();
     
-    // Gather users from tasks
     job.phases.forEach(phase => {
       phase.tasks.forEach(task => {
         task.users.forEach(user => {
@@ -185,7 +209,6 @@ export default function JobDetailPage() {
       });
     });
   
-    // Convert to array and filter based on search
     const uniqueUsers = Array.from(allUsers.values());
     const filteredUsers = uniqueUsers.filter(user => 
       user.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -233,7 +256,7 @@ export default function JobDetailPage() {
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Timeline</h2>
         <CardFrame>
-          <Timeline 
+         <Timeline 
             phases={job.phases}
             currentWeek={job.currentWeek}
             startDate={job.phases[0]?.startDate}
@@ -285,13 +308,15 @@ export default function JobDetailPage() {
       </section>
 
       <section className="mb-8">
-        <HeaderTabs 
-          tabs={tabs} 
+        <ContentTabs 
+          tabs={tabs}
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
         />
         <div className="mt-4">
-          {activeTab === "Contacts" ? renderContacts() : renderPhaseCards()}
+          {activeTab === "Contacts" ? renderContacts() : 
+           activeTab === "Floor Plan" ? renderFloorPlan() :
+           renderPhaseCards()}
         </div>
       </section>
     </>

@@ -1,23 +1,17 @@
+// components/MaterialCard.tsx
+
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Contact } from '../../data/contactsData';
 import ContactCard from '../ContactCard';
+import { FormMaterial } from '../../app/types/database';
 
 interface MaterialCardProps {
-  material: Material;
-  onUpdate: (updatedMaterial: Material) => void;
+  material: FormMaterial;
+  onUpdate: (updatedMaterial: FormMaterial) => void;
   onDelete: () => void;
   phaseStartDate: string;
   contacts: Contact[];
-}
-
-interface Material {
-  id: string;
-  title: string;
-  dueDate: string;
-  status: string;
-  details: string;
-  isExpanded: boolean;
 }
 
 const MaterialCard: React.FC<MaterialCardProps> = ({ 
@@ -25,12 +19,15 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   onUpdate, 
   onDelete, 
   phaseStartDate, 
-  contacts,
+  contacts 
 }) => {
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
-  const [localMaterial, setLocalMaterial] = useState<Material>(material);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>(
+    material.selectedContacts?.map(id => 
+      contacts.find(c => c.id === id.toString()) as Contact
+    ).filter(Boolean) || []
+  );
+  const [localMaterial, setLocalMaterial] = useState<FormMaterial>(material);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (material.id === '' && !material.dueDate) {
@@ -44,7 +41,6 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   const formatDate = (dateString: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00Z');
-    // Use UTC methods to avoid timezone shifts
     return new Date(date.getTime() + date.getTimezoneOffset() * 60000)
       .toLocaleDateString('en-US', {
         month: '2-digit',
@@ -57,7 +53,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     onDelete();
   };
 
-  const handleInputChange = (field: keyof Material, value: string) => {
+  const handleInputChange = (field: keyof FormMaterial, value: string) => {
     if (field === 'dueDate') {
       // Only validate that material can't be due before phase starts
       if (new Date(value) >= new Date(phaseStartDate)) {
@@ -84,7 +80,6 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   };
 
   const validateMaterial = (): boolean => {
-    setAttempted(true);
     const newErrors: {[key: string]: string} = {};
     if (!localMaterial.title.trim()) newErrors.title = 'Title is required';
     if (!localMaterial.dueDate) newErrors.dueDate = 'Due date is required';
@@ -96,6 +91,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     if (validateMaterial()) {
       const updatedMaterial = {
         ...localMaterial,
+        selectedContacts: selectedContacts.map(contact => ({ id: contact.id })),
         isExpanded: false
       };
       onUpdate(updatedMaterial);
@@ -116,9 +112,9 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
                 type="text"
                 value={localMaterial.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className={`w-full p-2 border rounded ${attempted && errors.title ? 'border-red-500' : ''}`}
+                className={`w-full p-2 border rounded ${errors.title ? 'border-red-500' : ''}`}
               />
-              {attempted && errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
@@ -129,9 +125,9 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
                 value={localMaterial.dueDate}
                 onChange={(e) => handleInputChange('dueDate', e.target.value)}
                 min={phaseStartDate}
-                className={`w-full p-2 border rounded ${attempted && errors.dueDate ? 'border-red-500' : ''}`}
+                className={`w-full p-2 border rounded ${errors.dueDate ? 'border-red-500' : ''}`}
               />
-              {attempted && errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
+              {errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
             </div>
           </div>
           <div className="mb-2">
@@ -226,6 +222,5 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     </div>
   );
 };
-
 
 export default MaterialCard;

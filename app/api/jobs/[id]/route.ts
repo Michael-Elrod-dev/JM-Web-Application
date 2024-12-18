@@ -257,7 +257,15 @@ export async function GET(
         );
           
         const [notes] = await connection.query<NoteDetails[]>(
-          `SELECT note_details FROM note WHERE phase_id = ?`,
+          `SELECT 
+            n.note_details,
+            n.created_at,
+            JSON_OBJECT(
+              'user_name', u.user_name
+            ) as created_by
+          FROM note n
+          JOIN app_user u ON n.created_by = u.user_id
+          WHERE n.phase_id = ?`,
           [phase.id]
         );
 
@@ -275,7 +283,7 @@ export async function GET(
           ...phase,
           tasks: transformedTasks,
           materials: transformedMaterials,
-          note: notes.map((n: NoteDetails) => n.note_details)
+          notes: notes
         };
       }));
 
@@ -293,6 +301,113 @@ export async function GET(
     console.error('Database error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch job details' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const connection = await pool.getConnection();
+    const body = await request.json();
+
+    try {
+      // Hardcode Michael Elrod's user ID for now
+      // You'll want to replace this with actual user authentication later
+      const TEMP_USER_ID = 20; // Assuming Michael Elrod's user_id is 1
+
+      // Check if the phase_id exists and is valid
+      const [phaseCheck] = await connection.query<RowDataPacket[]>(
+        'SELECT phase_id FROM phase WHERE phase_id = ? AND job_id = ?',
+        [body.phase_id, params.id]
+      );
+
+      if (!phaseCheck.length) {
+        return NextResponse.json(
+          { error: 'Invalid phase ID or phase does not belong to this job' },
+          { status: 400 }
+        );
+      }
+
+      // Insert the new note
+      const [result] = await connection.query(
+        `INSERT INTO note (
+          phase_id,
+          note_details,
+          created_by
+        ) VALUES (?, ?, ?)`,
+        [
+          body.phase_id,
+          body.note_details,
+          TEMP_USER_ID
+        ]
+      );
+
+      // Fetch the newly created note with user info
+      const [newNote] = await connection.query<RowDataPacket[]>(
+        `SELECT 
+          n.note_details,
+          n.created_at,
+          JSON_OBJECT(
+            'user_name', u.user_name
+          ) as created_by
+        FROM note n
+        JOIN app_user u ON n.created_by = u.user_id
+        WHERE n.note_id = ?`,
+        [(result as any).insertId]
+      );
+
+      return NextResponse.json({ note: newNote[0] });
+
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Database error:', error);
+    return NextResponse.json(
+      { error: 'Failed to add note' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const connection = await pool.getConnection();
+    const body = await request.json();
+    const { id, type, newStatus } = body;
+
+    try {
+      if (type !== 'task' && type !== 'material') {
+        return NextResponse.json(
+          { error: 'Invalid type specified' },
+          { status: 400 }
+        );
+      }
+
+      const table = type === 'task' ? 'task' : 'material';
+      const idField = type === 'task' ? 'task_id' : 'material_id';
+      const statusField = type === 'task' ? 'task_status' : 'material_status';
+
+      await connection.query(
+        `UPDATE ${table} SET ${statusField} = ? WHERE ${idField} = ?`,
+        [newStatus, id]
+      );
+
+      return NextResponse.json({ success: true });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Database error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update status' },
       { status: 500 }
     );
   }

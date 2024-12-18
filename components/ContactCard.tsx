@@ -1,14 +1,8 @@
 // components/ContactCard.tsx
 import React from 'react';
 import CardFrame from './CardFrame';
+import { ContactCardProps } from '../app/types/props';
 
-interface ContactCardProps {
-  user_id: number;
-  user_name: string;
-  user_email: string;
-  user_phone: string;
-  showCheckbox?: boolean;
-}
 
 const ContactCard: React.FC<ContactCardProps> = ({ 
   user_name, 

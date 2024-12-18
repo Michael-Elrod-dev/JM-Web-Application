@@ -4,33 +4,13 @@
 import React, { useState, useEffect } from "react";
 import LargeJobFrame from '../../../components/LargeJobFrame';
 import { useSearchParams } from 'next/navigation';
+import { JobDetailView } from '../../types/views';
 
-interface Phase {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  color: string;
-}
-
-interface Job {
-  id: number;
-  jobName: string;
-  dateRange: string;
-  currentWeek: number;
-  phases: Phase[];
-  overdue: number;
-  sevenDaysPlus: number;
-  nextSevenDays: number;
-  tasks: string[];
-  materials: string[];
-  workers: string[];
-}
 
 export default function ActiveJobsPage() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || '');
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<JobDetailView[]>([]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -39,7 +19,7 @@ export default function ActiveJobsPage() {
         const data = await response.json();
         
         // Transform the data to match the expected format
-        const transformedJobs = data.jobs.map((job: any) => ({
+        const transformedJobs = data.jobs.map((job: any): JobDetailView => ({
           id: job.job_id,
           jobName: job.job_title,
           dateRange: job.date_range,
@@ -49,7 +29,10 @@ export default function ActiveJobsPage() {
             name: phase.name,
             startDate: phase.startDate,
             endDate: phase.endDate,
-            color: phase.color
+            color: phase.color,
+            tasks: [],
+            materials: [],
+            notes: []
           })),
           overdue: job.overdue,
           nextSevenDays: job.nextSevenDays,
