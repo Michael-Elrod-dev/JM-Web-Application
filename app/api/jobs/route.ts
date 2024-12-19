@@ -6,10 +6,12 @@ import { RowDataPacket } from 'mysql2';
 // Add interfaces for our data types
 interface Task extends RowDataPacket {
   task_title: string;
+  task_status: string;
 }
 
 interface Material extends RowDataPacket {
   material_title: string;
+  material_status: string;
 }
 
 interface Worker extends RowDataPacket {
@@ -209,23 +211,23 @@ export async function GET(request: Request) {
           WHERE p.job_id = ?
         `, [job.job_id]);
 
-        // Get task titles for dropdowns
-        const [tasks] = await connection.query<Task[]>(`
-          SELECT t.task_title
-          FROM task t
-          JOIN phase p ON t.phase_id = p.phase_id
-          WHERE p.job_id = ?
-          ORDER BY t.task_title
-        `, [job.job_id]);
+// Get tasks with status
+const [tasks] = await connection.query<Task[]>(`
+  SELECT t.task_title, t.task_status
+  FROM task t
+  JOIN phase p ON t.phase_id = p.phase_id
+  WHERE p.job_id = ?
+  ORDER BY t.task_title
+`, [job.job_id]);
 
-        // Get material titles for dropdowns
-        const [materials] = await connection.query<Material[]>(`
-          SELECT m.material_title
-          FROM material m
-          JOIN phase p ON m.phase_id = p.phase_id
-          WHERE p.job_id = ?
-          ORDER BY m.material_title
-        `, [job.job_id]);
+// Get materials with status
+const [materials] = await connection.query<Material[]>(`
+  SELECT m.material_title, m.material_status
+  FROM material m
+  JOIN phase p ON m.phase_id = p.phase_id
+  WHERE p.job_id = ?
+  ORDER BY m.material_title
+`, [job.job_id]);
 
         // Get workers
         const [workers] = await connection.query<Worker[]>(`
@@ -283,8 +285,14 @@ export async function GET(request: Request) {
 
         return {
           ...job,
-          tasks: tasks.map((t: Task) => t.task_title),
-          materials: materials.map((m: Material) => m.material_title),
+          tasks: tasks.map((t: Task) => ({ 
+            task_title: t.task_title,
+            task_status: t.task_status
+          })),
+          materials: materials.map((m: Material) => ({ 
+            material_title: m.material_title,
+            material_status: m.material_status
+          })),
           workers: workers.map((w: Worker) => w.user_full_name),
           overdue,
           nextSevenDays,

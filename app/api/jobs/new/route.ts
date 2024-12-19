@@ -28,7 +28,6 @@ async function validateUsers(connection: PoolConnection, userIds: number[]) {
 export async function POST(request: Request) {
   try {
     const data: NewJob = await request.json();
-    console.log('Received job data:', JSON.stringify(data, null, 2));
 
     // Basic validation
     if (!data.title || !data.startDate) {

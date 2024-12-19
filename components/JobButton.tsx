@@ -7,7 +7,7 @@ interface JobButtonProps {
   title: string;
   icon?: IconType;
   onClick: () => void;
-  color: 'green' | 'red' | 'default';
+  color: 'green' | 'red' | 'blue';
   disabled?: boolean;
 }
 
@@ -18,11 +18,14 @@ const JobButton: React.FC<JobButtonProps> = ({ title, icon: Icon, onClick, color
         return 'bg-green-500 hover:bg-green-600';
       case 'red':
         return 'bg-red-500 hover:bg-red-600';
+      case 'blue':
+        return 'bg-blue-500 hover:bg-blue-600';
       default:
         return 'bg-zinc-500 hover:bg-zinc-600 text-white';
     }
   };
 
+  // Rest of the component remains the same
   return (
     <button
       onClick={onClick}

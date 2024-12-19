@@ -17,44 +17,58 @@ export default function ActiveJobsPage() {
       try {
         const response = await fetch("/api/jobs?view=detailed&status=active");
         const data = await response.json();
+        
+        console.log("Raw API response:", data.jobs);
+    
+        const transformedJobs = data.jobs.map((job: any): JobDetailView => ({
+          id: job.job_id,
+          jobName: job.job_title,
+          job_startdate: job.job_startdate,
+          dateRange: job.date_range,
+          currentWeek: job.current_week,
+          phases: job.phases.map((phase: any) => ({
+            id: phase.id,
+            name: phase.name,
+            startDate: phase.startDate,
+            endDate: phase.endDate,
+            color: phase.color,
+            tasks: [],
+            materials: [],
+            notes: [],
+          })),
+          overdue: job.overdue,
+          nextSevenDays: job.nextSevenDays,
+          sevenDaysPlus: job.sevenDaysPlus,
+          tasks: job.tasks.map((task: any) => ({
+            task_id: Math.random(),  // Still need this as we're not getting id from API
+            task_title: task.task_title,
+            task_startdate: '',      // Still need defaults for these as they're not in API
+            task_duration: 0,
+            task_status: task.task_status,
+            task_description: '',
+            users: []
+          })),
+          materials: job.materials.map((material: any) => ({
+            material_id: Math.random(),  // Still need this as we're not getting id from API
+            material_title: material.material_title,
+            material_duedate: '',       // Still need defaults for these as they're not in API
+            material_status: material.material_status,
+            material_description: '',
+            users: []
+          })),
+          workers: job.workers || [],
+        }));
 
-        // Transform the data to match the expected format
-        const transformedJobs = data.jobs.map(
-          (job: any): JobDetailView => ({
-            id: job.job_id,
-            jobName: job.job_title,
-            job_startdate: job.job_startdate,
-            dateRange: job.date_range,
-            currentWeek: job.current_week,
-            phases: job.phases.map((phase: any) => ({
-              id: phase.id,
-              name: phase.name,
-              startDate: phase.startDate,
-              endDate: phase.endDate,
-              color: phase.color,
-              tasks: [],
-              materials: [],
-              notes: [],
-            })),
-            overdue: job.overdue,
-            nextSevenDays: job.nextSevenDays,
-            sevenDaysPlus: job.sevenDaysPlus,
-            tasks: job.tasks.map((task: string) => ({ task_title: task })),
-            materials: job.materials.map((material: string) => ({
-              material_title: material,
-            })),
-            workers: job.workers || [],
-          })
-        );
-
+        console.log("Transformed jobs:", transformedJobs);
         setJobs(transformedJobs);
+        
       } catch (error) {
         console.error("Failed to fetch jobs:", error);
       }
     };
 
     fetchJobs();
-  }, []);
+}, []);
 
   const searchTerms = searchQuery
     .split(",")

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import CardFrame from "../../../components/CardFrame";
 import JobButton from "../../../components/JobButton";
 import PhaseCard from "../../../components/new/NewPhaseCard";
@@ -9,6 +9,9 @@ import ClientSearchSelect from "../../../components/new/ClientSearch";
 import { FaPlus } from "react-icons/fa";
 import { UserType } from "../../types/database";
 import { User, FormPhase } from "../../types/database";
+import { UserView } from "../../types/views";
+
+
 import {
   handleAddPhase,
   handleDeletePhase,
@@ -19,6 +22,7 @@ import {
 
 export default function NewJobPage() {
   const router = useRouter();
+  const [contacts, setContacts] = useState<UserView[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const today = new Date().toISOString().split("T")[0];
   const [jobTitle, setJobTitle] = useState("");
@@ -149,8 +153,43 @@ export default function NewJobPage() {
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!lastName.trim()) errors.lastName = "Last name is required";
     if (!clientEmail.trim()) errors.clientEmail = "Client email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+      errors.clientEmail = "Please enter a valid email address";
+    }
     return errors;
   };
+
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+
+    if (!numbers) return "";
+    if (numbers.length <= 3) {
+      return `(${numbers}`;
+    }
+    if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
+    }
+    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(
+      6,
+      10
+    )}`;
+  };
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const response = await fetch('/api/users/workers');
+        if (response.ok) {
+          const data = await response.json();
+          setContacts(data);
+        }
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
+      }
+    };
+  
+    fetchContacts();
+  }, []);
 
   return (
     <div className="mx-auto space-y-4">
@@ -256,12 +295,13 @@ export default function NewJobPage() {
                       setClientEmail(client.user_email);
                     }
                   }}
+                  selectedClient={selectedClient}
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setShowNewClientForm(true)}
-                className="mt-6 px-4 py-2 bg-zinc-500 text-white font-bold rounded-md hover:bg-zinc-700 transition-colors"
+                className="mt-6 px-4 py-2 bg-blue-500 text-white font-bold rounded-md hover:bg-blue-700 transition-colors"
               >
                 Add New Client
               </button>
@@ -363,9 +403,23 @@ export default function NewJobPage() {
                     <input
                       type="tel"
                       value={clientPhone}
-                      onChange={(e) => setClientPhone(e.target.value)}
+                      onChange={(e) => {
+                        // Only update if the new value would be a valid phone number
+                        const formatted = formatPhoneNumber(e.target.value);
+                        if (formatted.length <= 14) {
+                          // (XXX) XXX-XXXX = 14 characters
+                          setClientPhone(formatted);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Allow backspace to work naturally
+                        if (e.key === "Backspace" && clientPhone.length === 1) {
+                          setClientPhone("");
+                        }
+                      }}
                       className="mt-1 block w-full border border-zinc-300 rounded-md shadow-sm p-2 dark:bg-zinc-800 dark:text-white dark:border-zinc-600"
-                      placeholder="999-999-9999"
+                      placeholder="(999) 999-9999"
+                      maxLength={14}
                     />
                   </div>
                 </div>
@@ -395,31 +449,59 @@ export default function NewJobPage() {
                       if (Object.keys(newErrors).length === 0) {
                         setIsLoading(true);
                         try {
-                          const response = await fetch("/api/users/new", {
+                          // Create new client
+                          const response = await fetch("/api/users/clients", {
                             method: "POST",
                             headers: {
                               "Content-Type": "application/json",
                             },
                             body: JSON.stringify({
-                              user_first_name: firstName,
-                              user_last_name: lastName,
-                              user_email: clientEmail,
-                              user_phone: clientPhone,
+                              firstName: firstName,
+                              lastName: lastName,
+                              email: clientEmail,
+                              phone: clientPhone.replace(/\D/g, ""),
                             }),
                           });
 
-                          const data = await response.json();
+                          const newClient = await response.json();
 
                           if (!response.ok) {
                             throw new Error(
-                              data.error || "Failed to create client"
+                              newClient.error || "Failed to create client"
                             );
                           }
 
-                          // Set the newly created client as selected
-                          setSelectedClient(data);
+                          // Format the client object to match User type
+                          const formattedClient: User = {
+                            user_id: newClient.user_id,
+                            user_first_name: newClient.user_first_name,
+                            user_last_name: newClient.user_last_name,
+                            user_email: newClient.user_email,
+                            user_phone: newClient.user_phone,
+                            user_type: "Client" as UserType,
+                            created_at: newClient.created_at,
+                            updated_at: newClient.updated_at,
+                          };
+
+                          // Update selected client
+                          setSelectedClient(formattedClient);
+
+                          // Force refresh of client list by triggering a new search
+                          const refreshResponse = await fetch(
+                            "/api/users/clients"
+                          );
+                          if (!refreshResponse.ok) {
+                            throw new Error("Failed to refresh client list");
+                          }
+
+                          // Now close modal and reset states
                           setShowNewClientForm(false);
                           setAttempted(false);
+                          setFirstName("");
+                          setLastName("");
+                          setClientPhone("");
+                          setClientEmail("");
+                          setErrors({});
                         } catch (error) {
                           setErrors({
                             submit:
@@ -495,6 +577,7 @@ export default function NewJobPage() {
           onDelete={() => handleDeletePhase(index, phases, setPhases)}
           jobStartDate={startDate}
           onUpdate={handlePhaseUpdate}
+          contacts={contacts}
         />
       ))}
 
@@ -513,7 +596,7 @@ export default function NewJobPage() {
               handleAddPhase(phases, setPhases, startDate);
             }
           }}
-          color="default"
+          color="blue"
         />
         <JobButton title="Save Job" onClick={handleCreate} color="green" />
         <JobButton

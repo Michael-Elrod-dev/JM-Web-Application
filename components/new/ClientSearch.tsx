@@ -4,9 +4,13 @@ import { User } from "../../app/types/database";
 
 interface Props {
   onClientSelect: (client: User | null) => void;
+  selectedClient: User | null;
 }
 
-export default function ClientSearchSelect({ onClientSelect }: Props) {
+export default function ClientSearchSelect({
+  onClientSelect,
+  selectedClient,
+}: Props) {
   const [search, setSearch] = useState("");
   const [allClients, setAllClients] = useState<User[]>([]);
   const [filteredClients, setFilteredClients] = useState<User[]>([]);
@@ -16,29 +20,39 @@ export default function ClientSearchSelect({ onClientSelect }: Props) {
   const getInputClassName = (fieldName: string) => {
     const baseClass = "mt-1 block w-full border rounded-md shadow-sm p-2";
     const normalClass = "border-zinc-300";
-    const darkModeClass = "dark:bg-zinc-800 dark:text-white dark:border-zinc-600";
-    
+    const darkModeClass =
+      "dark:bg-zinc-800 dark:text-white dark:border-zinc-600";
+
     return `${baseClass} ${normalClass} ${darkModeClass}`;
   };
 
-  // Fetch all clients on component mount
-  useEffect(() => {
-    const fetchAllClients = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/users/clients");
-        const data = await response.json();
-        setAllClients(data);
-        setFilteredClients(data);
-      } catch (error) {
-        console.error("Error fetching clients:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchAllClients = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/users/clients");
+      const data = await response.json();
+      setAllClients(data);
+      setFilteredClients(data);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Fetch all clients on component mount or when selectedClient changes
+  useEffect(() => {
     fetchAllClients();
-  }, []);
+  }, [selectedClient]);
+
+  // Update search field when selectedClient changes
+  useEffect(() => {
+    if (selectedClient) {
+      setSearch(
+        `${selectedClient.user_first_name} ${selectedClient.user_last_name}`
+      );
+    }
+  }, [selectedClient]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -62,9 +76,10 @@ export default function ClientSearchSelect({ onClientSelect }: Props) {
   useEffect(() => {
     if (search.trim()) {
       const filtered = allClients.filter((client) => {
-        const fullName = `${client.user_first_name} ${client.user_last_name}`.toLowerCase();
+        const fullName =
+          `${client.user_first_name} ${client.user_last_name}`.toLowerCase();
         const searchTerm = search.toLowerCase();
-        
+
         return (
           fullName.includes(searchTerm) ||
           client.user_email.toLowerCase().includes(searchTerm) ||
@@ -87,7 +102,7 @@ export default function ClientSearchSelect({ onClientSelect }: Props) {
   return (
     <div id="client-search-container" className="flex-grow h-[64px] relative">
       <label className="block text-sm font-medium text-zinc-700 dark:text-white">
-        Select Client
+        Select Client{selectedClient && " - Selected"}
       </label>
       <div className="relative">
         <input
@@ -95,6 +110,9 @@ export default function ClientSearchSelect({ onClientSelect }: Props) {
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
+            if (!e.target.value) {
+              onClientSelect(null);
+            }
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
@@ -127,11 +145,16 @@ export default function ClientSearchSelect({ onClientSelect }: Props) {
                            cursor-pointer text-zinc-900 dark:text-white"
                   onClick={() => {
                     onClientSelect(client);
-                    setSearch(`${client.user_first_name} ${client.user_last_name}`);
+                    setSearch(
+                      `${client.user_first_name} ${client.user_last_name}`
+                    );
                     setIsOpen(false);
                   }}
                   role="option"
-                  aria-selected={search === `${client.user_first_name} ${client.user_last_name}`}
+                  aria-selected={
+                    search ===
+                    `${client.user_first_name} ${client.user_last_name}`
+                  }
                 >
                   <div className="flex flex-col">
                     <span className="font-medium">

@@ -1,7 +1,7 @@
 // types/props.ts
 import { ReactNode } from 'react';
 import { FormPhase } from './database';
-import { PhaseView, TaskView, MaterialView, NavTab } from './views';
+import { UserView, PhaseView, TaskView, MaterialView, NavTab } from './views';
 
 
 export interface DetailPhaseCardProps {
@@ -52,6 +52,7 @@ export interface PhaseCardProps {
   onDelete: () => void;
   jobStartDate: string;
   onUpdate: (updatedPhase: FormPhase) => void;
+  contacts: UserView[];
 }
 
 export interface TasksCardProps {

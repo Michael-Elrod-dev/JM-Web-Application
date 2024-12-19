@@ -1,15 +1,14 @@
 // components/PhaseCard.tsx
 
 import React, { useState, useEffect } from "react";
-import { contacts } from "../../data/contactsData";
 import CardFrame from "../CardFrame";
 import TaskCard from "./NewTaskCard";
 import MaterialCard from "./NewMaterialCard";
 import NoteCard from "./NewNoteCard";
 import { FaPlus } from "react-icons/fa";
 import { PhaseCardProps } from "@/app/types/props";
-
 import { FormTask, FormMaterial, FormNote } from "../../app/types/database";
+import { UserView } from "../../app/types/views";
 
 const emptyTask: FormTask = {
   id: "",
@@ -43,6 +42,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
   jobStartDate,
   onUpdate,
 }) => {
+  const [contacts, setContacts] = useState<UserView[]>([]);
   const [title, setTitle] = useState(phase.title);
   const [startDate, setStartDate] = useState(jobStartDate);
   const [description, setDescription] = useState(phase.description);
@@ -68,6 +68,22 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
     } ${darkModeClass}`;
   };
 
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const response = await fetch('/api/users/workers');
+        if (response.ok) {
+          const data = await response.json();
+          setContacts(data);
+        }
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
+      }
+    };
+
+    fetchContacts();
+  }, []);
+  
   useEffect(() => {
     if (jobStartDate && !startDate) {
       setStartDate(jobStartDate);
@@ -365,11 +381,13 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           {/* Tasks Section */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xl font-bold">Tasks</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
+                Tasks
+              </h3>
               {!isAddingTask && (
                 <button
                   onClick={addNewTask}
-                  className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
+                  className="w-6 h-6 rounded-full bg-white dark:bg-zinc-700 text-black dark:text-white border border-zinc-300 dark:border-zinc-600 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-600"
                 >
                   <FaPlus size={12} />
                 </button>
@@ -383,7 +401,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onUpdate={updateTask}
                 onDelete={() => deleteTask(task.id)}
                 phaseStartDate={startDate}
-                contacts={contacts}
+                contacts={contacts as UserView[]}
               />
             ))}
 
@@ -396,7 +414,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onUpdate={saveTask}
                 onDelete={() => setIsAddingTask(false)}
                 phaseStartDate={startDate}
-                contacts={contacts}
+                contacts={contacts as UserView[]}
               />
             )}
           </div>
@@ -404,11 +422,13 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           {/* Materials Section */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xl font-bold">Materials</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
+                Materials
+              </h3>
               {!isAddingMaterial && (
                 <button
                   onClick={addNewMaterial}
-                  className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
+                  className="w-6 h-6 rounded-full bg-white dark:bg-zinc-700 text-black dark:text-white border border-zinc-300 dark:border-zinc-600 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-600"
                 >
                   <FaPlus size={12} />
                 </button>
@@ -421,7 +441,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onUpdate={updateMaterial}
                 onDelete={() => deleteMaterial(material.id)}
                 phaseStartDate={startDate}
-                contacts={contacts}
+                contacts={contacts as UserView[]}
               />
             ))}
             {isAddingMaterial && (
@@ -433,7 +453,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
                 onUpdate={saveMaterial}
                 onDelete={() => setIsAddingMaterial(false)}
                 phaseStartDate={startDate}
-                contacts={contacts}
+                contacts={contacts as UserView[]}
               />
             )}
           </div>
@@ -441,11 +461,13 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           {/* Notes Section */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xl font-bold">Notes</h3>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
+                Notes
+              </h3>
               {!isAddingNote && (
                 <button
                   onClick={addNewNote}
-                  className="w-6 h-6 rounded-full bg-white text-black border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
+                  className="w-6 h-6 rounded-full bg-white dark:bg-zinc-700 text-black dark:text-white border border-zinc-300 dark:border-zinc-600 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-600"
                 >
                   <FaPlus size={12} />
                 </button>
@@ -471,19 +493,24 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded">
-            <p>Are you sure you want to delete this phase?</p>
-            <div className="mt-4 flex justify-end">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-zinc-300 dark:border-zinc-600">
+            <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-white">
+              Delete Phase
+            </h3>
+            <p className="text-zinc-700 dark:text-zinc-300">
+              Are you sure you want to delete this phase?
+            </p>
+            <div className="mt-4 flex justify-end space-x-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="mr-2 px-4 py-2 bg-zinc-200 rounded"
+                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded hover:bg-zinc-300 dark:hover:bg-zinc-600"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-500 text-white rounded"
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete
               </button>
