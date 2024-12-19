@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/app/lib/db';
 import { RowDataPacket } from 'mysql2';
+import { JobUpdatePayload } from '@/app/types/database'
 
 // Interfaces
 interface JobDetails extends RowDataPacket {
@@ -17,7 +18,8 @@ interface JobDetails extends RowDataPacket {
 
 interface User extends RowDataPacket {
   user_id: number;
-  user_name: string;
+  first_name: string;
+  last_name: string;
   user_phone: string;
   user_email: string;
 }
@@ -53,9 +55,9 @@ interface Phase extends RowDataPacket {
 }
 
 interface StatusCounts extends RowDataPacket {
-    overdue: number;
-    nextSevenDays: number;
-    sevenDaysPlus: number;
+  overdue: number;
+  nextSevenDays: number;
+  sevenDaysPlus: number;
 }
 
 interface NoteDetails extends RowDataPacket {
@@ -68,7 +70,7 @@ export async function GET(
 ) {
   try {
     const connection = await pool.getConnection();
-    
+
     try {
       // Get basic job info
       const [jobRows] = await connection.query<JobDetails[]>(`
@@ -79,7 +81,7 @@ export async function GET(
           j.job_location,
           j.job_description,
           CONCAT(
-            DATE_FORMAT(j.job_startdate, '%m/%d'),
+            DATE_FORMAT(j.job_startdate, '%m/%d/%y'),
             ' - ',
             DATE_FORMAT(
               GREATEST(
@@ -96,7 +98,7 @@ export async function GET(
                   WHERE p.job_id = j.job_id
                 ), j.job_startdate)
               ),
-              '%m/%d'
+              '%m/%d/%y'
             )
           ) as date_range,
           CEIL(
@@ -136,16 +138,15 @@ export async function GET(
           p.phase_title as name,
           p.phase_startdate as startDate,
           GREATEST(
-            IFNULL((
-              SELECT MAX(DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
-              FROM task t
-              WHERE t.phase_id = p.phase_id
-            ), p.phase_startdate),
-            IFNULL((
-              SELECT MAX(m.material_duedate)
-              FROM material m
-              WHERE m.phase_id = p.phase_id
-            ), p.phase_startdate)
+            IFNULL(
+              (SELECT MAX(DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
+               FROM task t WHERE t.phase_id = p.phase_id),
+              p.phase_startdate
+            ),
+            IFNULL(
+              (SELECT MAX(m.material_duedate) FROM material m WHERE m.phase_id = p.phase_id),
+              p.phase_startdate
+            )
           ) as endDate,
           CASE (p.phase_id % 6)
             WHEN 0 THEN '#3B82F6'
@@ -220,7 +221,8 @@ export async function GET(
             JSON_ARRAYAGG(
               JSON_OBJECT(
                 'user_id', u.user_id,
-                'user_name', u.user_name,
+                'user_first_name', u.user_first_name,
+                'user_last_name', u.user_last_name,
                 'user_phone', u.user_phone,
                 'user_email', u.user_email
               )
@@ -232,7 +234,7 @@ export async function GET(
           GROUP BY t.task_id`,
           [phase.id]
         );
-          
+
         const [materials] = await connection.query<Material[]>(
           `SELECT 
             m.material_id,
@@ -243,7 +245,8 @@ export async function GET(
             JSON_ARRAYAGG(
               JSON_OBJECT(
                 'user_id', u.user_id,
-                'user_name', u.user_name,
+                'user_first_name', u.user_first_name,
+                'user_last_name', u.user_last_name,
                 'user_phone', u.user_phone,
                 'user_email', u.user_email
               )
@@ -255,14 +258,15 @@ export async function GET(
           GROUP BY m.material_id`,
           [phase.id]
         );
-          
+
         const [notes] = await connection.query<NoteDetails[]>(
           `SELECT 
             n.note_details,
             n.created_at,
-            JSON_OBJECT(
-              'user_name', u.user_name
-            ) as created_by
+          JSON_OBJECT(
+            'user_first_name', u.user_first_name,
+            'user_last_name', u.user_last_name
+          ) as created_by
           FROM note n
           JOIN app_user u ON n.created_by = u.user_id
           WHERE n.phase_id = ?`,
@@ -273,12 +277,12 @@ export async function GET(
           ...task,
           users: task.users[0]?.user_id ? task.users : []
         }));
-      
+
         const transformedMaterials = materials.map(material => ({
           ...material,
           users: material.users[0]?.user_id ? material.users : []
         }));
-      
+
         return {
           ...phase,
           tasks: transformedTasks,
@@ -351,9 +355,10 @@ export async function POST(
         `SELECT 
           n.note_details,
           n.created_at,
-          JSON_OBJECT(
-            'user_name', u.user_name
-          ) as created_by
+JSON_OBJECT(
+  'user_first_name', u.user_first_name,
+  'user_last_name', u.user_last_name
+) as created_by
         FROM note n
         JOIN app_user u ON n.created_by = u.user_id
         WHERE n.note_id = ?`,
@@ -410,5 +415,117 @@ export async function PUT(
       { error: 'Failed to update status' },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const connection = await pool.getConnection();
+
+  try {
+    const body: JobUpdatePayload = await request.json();
+    const jobId = params.id;
+
+    await connection.beginTransaction();
+
+    // Handle job title updates
+    if (body.job_title) {
+      await connection.query(
+        'UPDATE job SET job_title = ? WHERE job_id = ?',
+        [body.job_title, jobId]
+      );
+    }
+
+    // Handle start date changes
+    if (body.job_startdate) {
+      // Get current job start date
+      const [currentJob] = await connection.query<RowDataPacket[]>(
+        'SELECT DATE(job_startdate) as job_startdate FROM job WHERE job_id = ?',
+        [jobId]
+      );
+
+      // Ensure dates are compared in UTC to avoid timezone issues
+      const currentStartDate = new Date(currentJob[0].job_startdate);
+      currentStartDate.setUTCHours(0, 0, 0, 0);
+
+      const newStartDate = new Date(body.job_startdate);
+      newStartDate.setUTCHours(0, 0, 0, 0);
+
+      const daysDifference = Math.floor(
+        (newStartDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysDifference !== 0) {
+        // Update job start date using DATE() to strip time components
+        await connection.query(
+          'UPDATE job SET job_startdate = DATE(?) WHERE job_id = ?',
+          [body.job_startdate, jobId]
+        );
+
+        // Update phase dates using DATE()
+        await connection.query(
+          `UPDATE phase 
+           SET phase_startdate = DATE(DATE_ADD(phase_startdate, INTERVAL ? DAY))
+           WHERE job_id = ?`,
+          [daysDifference, jobId]
+        );
+
+        // Update task dates using DATE()
+        await connection.query(
+          `UPDATE task t
+           JOIN phase p ON t.phase_id = p.phase_id
+           SET t.task_startdate = DATE(DATE_ADD(t.task_startdate, INTERVAL ? DAY))
+           WHERE p.job_id = ?`,
+          [daysDifference, jobId]
+        );
+
+        // Update material dates using DATE()
+        await connection.query(
+          `UPDATE material m
+           JOIN phase p ON m.phase_id = p.phase_id
+           SET m.material_duedate = DATE(DATE_ADD(m.material_duedate, INTERVAL ? DAY))
+           WHERE p.job_id = ?`,
+          [daysDifference, jobId]
+        );
+      }
+    }
+
+    // Handle timeline extension/reduction
+    if (body.extension_days) {
+      const extensionDays = body.extension_days;
+
+      // Update task durations
+      await connection.query(
+        `UPDATE task t
+         JOIN phase p ON t.phase_id = p.phase_id
+         SET t.task_duration = t.task_duration + ?
+         WHERE p.job_id = ?`,
+        [extensionDays, jobId]
+      );
+
+      // Update material due dates
+      await connection.query(
+        `UPDATE material m
+         JOIN phase p ON m.phase_id = p.phase_id
+         SET m.material_duedate = DATE_ADD(m.material_duedate, INTERVAL ? DAY)
+         WHERE p.job_id = ?`,
+        [extensionDays, jobId]
+      );
+    }
+
+    await connection.commit();
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error updating job:', error);
+    return NextResponse.json(
+      { error: 'Failed to update job' },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
   }
 }

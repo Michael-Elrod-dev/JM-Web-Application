@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const connection = await pool.getConnection();
     const [rows] = await connection.execute(
-      'SELECT * FROM app_user ORDER BY user_name'
+      'SELECT * FROM app_user ORDER BY user_first_name, user_last_name'
     );
     connection.release();
     

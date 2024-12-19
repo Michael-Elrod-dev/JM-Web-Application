@@ -9,11 +9,7 @@ import NoteCard from "./NewNoteCard";
 import { FaPlus } from "react-icons/fa";
 import { PhaseCardProps } from "@/app/types/props";
 
-import {
-  FormTask,
-  FormMaterial,
-  FormNote,
-} from "../../app/types/database";
+import { FormTask, FormMaterial, FormNote } from "../../app/types/database";
 
 const emptyTask: FormTask = {
   id: "",
@@ -64,11 +60,12 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
   const getInputClassName = (value: string, field: string) => {
     const baseClass = "w-full p-2 border rounded";
     const errorClass = "border-red-500";
-    const normalClass = "border-zinc-300";
+    const normalClass = "border-zinc-300 dark:border-zinc-600";
+    const darkModeClass = "dark:bg-zinc-800 dark:text-white";
 
     return `${baseClass} ${
-      attempted && !value && errors[field] ? errorClass : normalClass
-    }`;
+      attempted && errors[field] ? errorClass : normalClass
+    } ${darkModeClass}`;
   };
 
   useEffect(() => {
@@ -105,7 +102,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
   };
 
   const updateTask = (updatedTask: FormTask) => {
-    const updatedTasks = tasks.map((task) => 
+    const updatedTasks = tasks.map((task) =>
       task.id === updatedTask.id ? updatedTask : task
     );
     setTasks(updatedTasks);
@@ -145,7 +142,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
 
   const deleteTask = (taskId: string) => {
     if (taskId) {
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      const updatedTasks = tasks.filter((task) => task.id !== taskId);
       setTasks(updatedTasks);
       onUpdate({
         ...phase,
@@ -202,7 +199,9 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
 
   const deleteMaterial = (materialId: string) => {
     if (materialId) {
-      const updatedMaterials = materials.filter(material => material.id !== materialId);
+      const updatedMaterials = materials.filter(
+        (material) => material.id !== materialId
+      );
       setMaterials(updatedMaterials);
       onUpdate({
         ...phase,
@@ -257,7 +256,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
 
   const deleteNote = (noteId: string) => {
     if (noteId) {
-      const updatedNotes = notes.filter(note => note.id !== noteId);
+      const updatedNotes = notes.filter((note) => note.id !== noteId);
       setNotes(updatedNotes);
       onUpdate({
         ...phase,
@@ -318,7 +317,8 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              {/* Phase Title input */}
+              <label className="block text-sm font-medium text-zinc-700 dark:text-white">
                 Phase Title<span className="text-red-500">*</span>
               </label>
               <input
@@ -332,7 +332,8 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              {/* Start Date input */}
+              <label className="block text-sm font-medium text-zinc-700 dark:text-white">
                 Start Date<span className="text-red-500">*</span>
               </label>
               <input
@@ -349,13 +350,14 @@ const PhaseCard: React.FC<PhaseCardProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+            {/* Description textarea */}
+            <label className="block text-sm font-medium text-zinc-700 dark:text-white">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => handleInputChange("description", e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
               rows={3}
             />
           </div>

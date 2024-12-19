@@ -14,40 +14,57 @@ const SettingsHeader: React.FC<{ title: string }> = ({ title }) => {
 };
 
 const SettingsForm: React.FC = () => {
+  const getInputClassName = (fieldName: string) => {
+    const baseClass = "mt-1 block w-full border rounded-md shadow-sm p-2";
+    const normalClass = "border-zinc-300";
+    const darkModeClass = "dark:bg-zinc-800 dark:text-white dark:border-zinc-600";
+    
+    return `${baseClass} ${normalClass} ${darkModeClass}`.trim();
+  };
+
   return (
     <div className="bg-white dark:bg-zinc-800 p-8 rounded-lg shadow-lg w-96">
-      <h2 className="text-2xl font-bold mb-6 text-center">Contact Information</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center text-zinc-700 dark:text-white">Contact Information</h2>
       <form>
         <div className="mb-4">
-          <label htmlFor="name" className="block text-sm font-medium mb-1">Name</label>
+          <label htmlFor="firstName" className="block text-sm font-medium text-zinc-700 dark:text-white mb-1">First Name</label>
           <input 
             type="text" 
-            id="name" 
-            placeholder="Joey Markowski"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-400" 
+            id="firstName" 
+            placeholder="Joey"
+            className={getInputClassName('firstName')}
           />
         </div>
         <div className="mb-4">
-          <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone Number</label>
+          <label htmlFor="lastName" className="block text-sm font-medium text-zinc-700 dark:text-white mb-1">Last Name</label>
+          <input 
+            type="text" 
+            id="lastName" 
+            placeholder="Markowski"
+            className={getInputClassName('lastName')}
+          />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="phone" className="block text-sm font-medium text-zinc-700 dark:text-white mb-1">Phone Number</label>
           <input 
             type="tel" 
             id="phone" 
             placeholder="870-213-5683"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-400" 
+            className={getInputClassName('phone')}
           />
         </div>
         <div className="mb-6">
-          <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium text-zinc-700 dark:text-white mb-1">Email</label>
           <input 
             type="email" 
             id="email" 
             placeholder="joeymarkowski@hotmail.com"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-400" 
+            className={getInputClassName('email')}
           />
         </div>
-        <button type="submit" className="w-full bg-green-500 text-white py-2 rounded-md shadow-sm hover:bg-green-600 transition duration-300 mb-3">Update</button>
-        <button type="button" className="w-full bg-blue-600 text-white py-2 rounded-md shadow-sm hover:bg-blue-700 transition duration-300 mb-3">Change Password</button>
-        <button type="button" className="w-full bg-red-500 text-white py-2 rounded-md shadow-sm hover:bg-red-600 transition duration-300">Logout</button>
+        <button type="submit" className="w-full bg-green-500 text-white py-2 rounded-md shadow-sm hover:bg-green-600 transition duration-300 mb-3 font-bold">Update</button>
+        <button type="button" className="w-full bg-blue-600 text-white py-2 rounded-md shadow-sm hover:bg-blue-700 transition duration-300 mb-3 font-bold">Change Password</button>
+        <button type="button" className="w-full bg-red-500 text-white py-2 rounded-md shadow-sm hover:bg-red-600 transition duration-300 font-bold">Logout</button>
       </form>
     </div>
   );

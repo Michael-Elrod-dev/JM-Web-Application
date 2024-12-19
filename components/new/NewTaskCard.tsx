@@ -1,11 +1,11 @@
 // components/TaskCard.tsx
 
-import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
-import { Contact } from '../../data/contactsData';
-import ContactCard from '../ContactCard';
-import { calculateEndDate } from '../../handlers/phases';
-import { FormTask } from '../../app/types/database';
+import React, { useState, useEffect } from "react";
+import { FaEdit, FaTrash } from "react-icons/fa";
+import { Contact } from "../../data/contactsData";
+import ContactCard from "../ContactCard";
+import { calculateEndDate } from "../../handlers/phases";
+import { FormTask } from "../../app/types/database";
 
 interface TaskCardProps {
   task: FormTask;
@@ -15,58 +15,67 @@ interface TaskCardProps {
   contacts: Contact[];
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStartDate, contacts }) => {
+const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  onUpdate,
+  onDelete,
+  phaseStartDate,
+  contacts,
+}) => {
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(
-    task.selectedContacts?.map(id => 
-      contacts.find(c => c.id === id.toString()) as Contact
-    ).filter(Boolean) || []
+    task.selectedContacts
+      ?.map((id) => contacts.find((c) => c.id === id.toString()) as Contact)
+      .filter(Boolean) || []
   );
   const [localTask, setLocalTask] = useState<FormTask>(task);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    if (task.id === '' && !task.startDate) {
-      setLocalTask(prev => ({
+    if (task.id === "" && !task.startDate) {
+      setLocalTask((prev) => ({
         ...prev,
-        startDate: phaseStartDate
+        startDate: phaseStartDate,
       }));
     }
   }, [task.id, task.startDate, phaseStartDate]);
 
   const handleStartDateChange = (newStartDate: string) => {
     if (new Date(newStartDate) >= new Date(phaseStartDate)) {
-      setLocalTask(prev => ({
+      setLocalTask((prev) => ({
         ...prev,
-        startDate: newStartDate
+        startDate: newStartDate,
       }));
-      setErrors(prev => ({ ...prev, startDate: '' }));
+      setErrors((prev) => ({ ...prev, startDate: "" }));
     } else {
-      setErrors(prev => ({ 
-        ...prev, 
-        startDate: 'Task cannot start before phase start date' 
+      setErrors((prev) => ({
+        ...prev,
+        startDate: "Task cannot start before phase start date",
       }));
     }
   };
 
   const formatDate = (dateString: string): string => {
-    if (!dateString) return '';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      timeZone: 'UTC'
+    if (!dateString) return "";
+    const date = new Date(dateString + "T00:00:00");
+    return date.toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      timeZone: "UTC",
     });
   };
 
   const handleInputChange = (field: keyof FormTask, value: string) => {
-    setLocalTask(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
+    setLocalTask((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const handleDurationChange = (newDuration: string) => {
-    const newDueDate = calculateEndDate(localTask.startDate, parseInt(newDuration) || 0);
-    setLocalTask(prev => ({
+    const newDueDate = calculateEndDate(
+      localTask.startDate,
+      parseInt(newDuration) || 0
+    );
+    setLocalTask((prev) => ({
       ...prev,
       duration: newDuration,
       dueDate: newDueDate,
@@ -78,7 +87,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
   };
 
   const handleContactRemove = (contactId: string) => {
-    setSelectedContacts(selectedContacts.filter(contact => contact.id !== contactId));
+    setSelectedContacts(
+      selectedContacts.filter((contact) => contact.id !== contactId)
+    );
   };
 
   const handleDelete = () => {
@@ -86,10 +97,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
   };
 
   const validateTask = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
-    if (!localTask.title.trim()) newErrors.title = 'Title is required';
-    if (!localTask.startDate) newErrors.startDate = 'Start date is required';
-    if (!localTask.duration) newErrors.duration = 'Duration is required';
+    const newErrors: { [key: string]: string } = {};
+    if (!localTask.title.trim()) newErrors.title = "Title is required";
+    if (!localTask.startDate) newErrors.startDate = "Start date is required";
+    if (!localTask.duration) newErrors.duration = "Duration is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -98,8 +109,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
     if (validateTask()) {
       const updatedTask = {
         ...localTask,
-        selectedContacts: selectedContacts.map(contact => ({ id: contact.id })),
-        isExpanded: false
+        selectedContacts: selectedContacts.map((contact) => ({
+          id: contact.id,
+        })),
+        isExpanded: false,
       };
       onUpdate(updatedTask);
       setLocalTask(updatedTask);
@@ -107,7 +120,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
   };
 
   return (
-    <div className="mb-4 p-4 border rounded">
+    <div className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
       {localTask.isExpanded ? (
         <div>
           <div className="mb-2">
@@ -117,10 +130,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
             <input
               type="text"
               value={localTask.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              className={`w-full p-2 border rounded ${errors.title ? 'border-red-500' : ''}`}
+              onChange={(e) => handleInputChange("title", e.target.value)}
+              className={`w-full p-2 border ${
+                errors.title
+                  ? "border-red-500"
+                  : "border-zinc-300 dark:border-zinc-600"
+              } rounded dark:bg-zinc-800 dark:text-white`}
             />
-            {errors.title && <p className="text-red-500 text-xs">{errors.title}</p>}
+            {errors.title && (
+              <p className="text-red-500 text-xs">{errors.title}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div>
@@ -132,9 +151,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
                 value={localTask.startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
                 min={phaseStartDate}
-                className={`w-full p-2 border rounded ${errors.startDate ? 'border-red-500' : ''}`}
+                className={`w-full p-2 border ${
+                  errors.startDate
+                    ? "border-red-500"
+                    : "border-zinc-300 dark:border-zinc-600"
+                } rounded dark:bg-zinc-800 dark:text-white`}
               />
-              {errors.startDate && <p className="text-red-500 text-xs">{errors.startDate}</p>}
+              {errors.startDate && (
+                <p className="text-red-500 text-xs">{errors.startDate}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
@@ -145,41 +170,54 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
                 value={localTask.duration}
                 onChange={(e) => handleDurationChange(e.target.value)}
                 min="1"
-                className={`w-full p-2 border rounded ${errors.duration ? 'border-red-500' : ''}`}
+                className={`w-full p-2 border ${
+                  errors.duration
+                    ? "border-red-500"
+                    : "border-zinc-300 dark:border-zinc-600"
+                } rounded dark:bg-zinc-800 dark:text-white`}
               />
-              {errors.duration && <p className="text-red-500 text-xs">{errors.duration}</p>}
+              {errors.duration && (
+                <p className="text-red-500 text-xs">{errors.duration}</p>
+              )}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-2">
-          </div>
+          <div className="grid grid-cols-2 gap-4 mb-2"></div>
           <div className="mb-2">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Details</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              Details
+            </label>
             <textarea
               value={localTask.details}
-              onChange={(e) => handleInputChange('details', e.target.value)}
-              className="w-full p-2 border rounded"
+              onChange={(e) => handleInputChange("details", e.target.value)}
+              className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
               rows={3}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">Add People</label>
-            <select 
-              onChange={(e) => {
-                const selectedContact = contacts.find(contact => contact.id === e.target.value);
-                if (selectedContact) {
-                  handleContactSelect(selectedContact);
-                  e.target.value = ''; // Reset select after adding
-                }
-              }}
-              className="w-full p-2 border rounded"
-            >
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              Add People
+            </label>
+            <select
+  onChange={(e) => {
+    const selectedContact = contacts.find(
+      (contact) => contact.id === e.target.value
+    );
+    if (selectedContact) {
+      handleContactSelect(selectedContact);
+      e.target.value = ""; // Reset select after adding
+    }
+  }}
+  className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
+>
               <option value="">Select a person</option>
-              {contacts.map(contact => (
-                <option key={contact.id} value={contact.id}>{contact.name}</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={contact.id}>
+                  {contact.name}
+                </option>
               ))}
             </select>
             <div className="mt-2 space-y-2">
-              {selectedContacts.map(contact => (
+              {selectedContacts.map((contact) => (
                 <div key={contact.id} className="relative">
                   <ContactCard
                     user_id={parseInt(contact.id)}
@@ -188,7 +226,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
                     user_phone={contact.phone}
                     showCheckbox={false}
                   />
-                  <button 
+                  <button
                     onClick={() => handleContactRemove(contact.id)}
                     className="absolute top-2 right-2 text-zinc-400 hover:text-red-600"
                   >
@@ -218,9 +256,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, phaseStar
           <div className="overflow-hidden text-ellipsis whitespace-nowrap">
             {localTask.title}
           </div>
-          <div className="text-center">
-            {formatDate(localTask.startDate)}
-          </div>
+          <div className="text-center">{formatDate(localTask.startDate)}</div>
           <div className="flex justify-end">
             <button
               onClick={() => {

@@ -15,7 +15,8 @@ interface BaseEntity {
 export interface User extends BaseEntity {
   user_id: number;
   user_type: UserType;
-  user_name: string;
+  user_first_name: string;
+  user_last_name: string;
   user_phone: string | null;
   user_email: string;
 }
@@ -158,11 +159,12 @@ export interface NewJob {
   description?: string;
   client: {
     user_id?: number;
-    user_name?: string;
+    user_first_name?: string;
+    user_last_name?: string;
     user_email?: string;
-    user_phone?: string;
+    user_phone?: string | null;
   };
-  phases: {
+  phases?: Array<{
     title: string;
     startDate: string;
     description?: string;
@@ -182,7 +184,7 @@ export interface NewJob {
     notes: {
       content: string;
     }[];
-  }[];
+  }>;
 }
 
 export interface FormTask {
@@ -218,4 +220,10 @@ export interface FormPhase {
   tasks: FormTask[];
   materials: FormMaterial[];
   notes: FormNote[];
+}
+
+export interface JobUpdatePayload {
+  job_title?: string;
+  job_startdate?: string;
+  extension_days?: number;
 }

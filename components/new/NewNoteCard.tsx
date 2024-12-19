@@ -38,12 +38,12 @@ const NoteCard: React.FC<NoteCardProps> = ({
   return (
     <div className="mb-4">
       {localNote.isExpanded ? (
-        <div className="border rounded p-4 bg-white">
+        <div className="border border-zinc-300 dark:border-zinc-600 rounded p-4 bg-white dark:bg-zinc-800">
           <textarea
             value={localNote.content}
             onChange={(e) => setLocalNote(prev => ({ ...prev, content: e.target.value }))}
             onKeyDown={handleKeyDown}
-            className="w-full p-2 border rounded mb-2"
+            className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
             rows={3}
             placeholder="Enter your note..."
             autoFocus
@@ -64,7 +64,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
           </div>
         </div>
       ) : (
-        <div className="border rounded p-4 bg-white relative">
+        <div className="border border-zinc-300 dark:border-zinc-600 rounded p-4 bg-white dark:bg-zinc-800 relative">
           <div className="absolute top-2 right-2 flex gap-2">
             <button
               onClick={() => setLocalNote(prev => ({ ...prev, isExpanded: true }))}
@@ -79,7 +79,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
               <FaTrash size={18} />
             </button>
           </div>
-          <p className="whitespace-pre-wrap pr-20">{localNote.content}</p>
+          <p className="whitespace-pre-wrap pr-20 text-zinc-700 dark:text-white">{localNote.content}</p>
         </div>
       )}
     </div>

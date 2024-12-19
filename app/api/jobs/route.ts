@@ -13,7 +13,7 @@ interface Material extends RowDataPacket {
 }
 
 interface Worker extends RowDataPacket {
-  user_name: string;
+  user_full_name: string;
 }
 
 interface Phase extends RowDataPacket {
@@ -229,20 +229,20 @@ export async function GET(request: Request) {
 
         // Get workers
         const [workers] = await connection.query<Worker[]>(`
-          SELECT DISTINCT u.user_name
+          SELECT DISTINCT CONCAT(u.user_first_name, ' ', u.user_last_name) as user_full_name
           FROM app_user u
           JOIN user_task ut ON u.user_id = ut.user_id
           JOIN task t ON ut.task_id = t.task_id
           JOIN phase p ON t.phase_id = p.phase_id
           WHERE p.job_id = ?
           UNION
-          SELECT DISTINCT u.user_name
+          SELECT DISTINCT CONCAT(u.user_first_name, ' ', u.user_last_name) as user_full_name
           FROM app_user u
           JOIN user_material um ON u.user_id = um.user_id
           JOIN material m ON um.material_id = m.material_id
           JOIN phase p ON m.phase_id = p.phase_id
           WHERE p.job_id = ?
-          ORDER BY user_name
+          ORDER BY user_full_name
         `, [job.job_id, job.job_id]);
 
         // Get phases with calculated weeks based on tasks and materials
@@ -285,7 +285,7 @@ export async function GET(request: Request) {
           ...job,
           tasks: tasks.map((t: Task) => t.task_title),
           materials: materials.map((m: Material) => m.material_title),
-          workers: workers.map((w: Worker) => w.user_name),
+          workers: workers.map((w: Worker) => w.user_full_name),
           overdue,
           nextSevenDays,
           sevenDaysPlus: beyondSevenDays,

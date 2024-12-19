@@ -18,12 +18,12 @@ const PhaseCard: React.FC<DetailPhaseCardProps> = ({ phase, phaseNumber, showTas
   const startDate = new Date(phase.startDate).toLocaleDateString('en-US', {
     month: 'numeric',
     day: 'numeric',
-    year: 'numeric'
+    year: '2-digit'
   });
   const endDate = new Date(phase.endDate).toLocaleDateString('en-US', {
     month: 'numeric',
     day: 'numeric',
-    year: 'numeric'
+    year: '2-digit'
   });
 
   const handleAddNote = async () => {

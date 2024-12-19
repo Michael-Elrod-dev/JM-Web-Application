@@ -1,11 +1,9 @@
 // types/props.ts
-// Component prop types
 import { ReactNode } from 'react';
 import { FormPhase } from './database';
 import { PhaseView, TaskView, MaterialView, NavTab } from './views';
 
 
-// app/types/props.ts
 export interface DetailPhaseCardProps {
   phase: {
     phase_id: number;
@@ -21,7 +19,8 @@ export interface DetailPhaseCardProps {
       task_description: string;
       users: {
         user_id: number;
-        user_name: string;
+        first_name: string;
+        last_name: string;
         user_email: string;
         user_phone: string;
       }[];
@@ -34,22 +33,17 @@ export interface DetailPhaseCardProps {
       material_description: string;
       users: {
         user_id: number;
-        user_name: string;
+        first_name: string;
+        last_name: string;
         user_email: string;
         user_phone: string;
       }[];
     }[];
-    notes: {
-      note_details: string;
-      created_at: string;
-      created_by: {
-        user_name: string;
-      };
-    }[];
+    notes: any[];
   };
   phaseNumber: number;
-  showTasks?: boolean;
-  showMaterials?: boolean;
+  showTasks: boolean;
+  showMaterials: boolean;
 }
 
 export interface PhaseCardProps {
@@ -69,10 +63,12 @@ export interface MaterialsCardProps {
 }
 
 export interface ContactCardProps {
-  user_id: number;
-  user_name: string;
+  user_id?: number;
+  user_first_name: string;
+  user_last_name: string;
   user_email: string;
-  user_phone: string;
+  user_phone?: string;
+  showCheckbox?: boolean;
 }
 
 export interface TimelineProps {
@@ -81,14 +77,6 @@ export interface TimelineProps {
   startDate: string;
   endDate: string;
 }
-
-export interface ContactCardProps {
-    user_id: number;
-    user_name: string;
-    user_email: string;
-    user_phone: string;
-    showCheckbox?: boolean;
-  }
 
   export interface HeaderTabsProps {
     tabs: NavTab[];
@@ -101,9 +89,3 @@ export interface CardFrameProps {
     className?: string;
   }
   
-export interface TimelineProps {
-    phases: PhaseView[];
-    startDate: string;
-    endDate: string;
-    currentWeek: number;
-  }

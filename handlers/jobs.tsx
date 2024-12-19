@@ -33,7 +33,8 @@ export function transformFormDataToNewJob(formData: {
   jobLocation?: string;
   description?: string;
   selectedClient?: { user_id: number } | null;
-  clientName?: string;
+  firstName?: string;
+  lastName?: string;
   clientEmail?: string;
   clientPhone?: string;
   phases: Array<{
@@ -65,7 +66,8 @@ export function transformFormDataToNewJob(formData: {
     description: formData.description,
     client: {
       user_id: formData.selectedClient?.user_id,
-      user_name: formData.clientName,
+      user_first_name: formData.firstName,
+      user_last_name: formData.lastName,
       user_email: formData.clientEmail,
       user_phone: formData.clientPhone,
     },
@@ -121,23 +123,25 @@ export const handleDeletePhase = (
 
 export const handleCancel = (
   setJobTitle: (value: string) => void,
-  setClientName: (value: string) => void,
+  setFirstName: (value: string) => void,
+  setLastName: (value: string) => void,
   setClientPhone: (value: string) => void,
   setClientEmail: (value: string) => void,
   setStartDate: (value: string) => void,
   setJobLocation: (value: string) => void,
   setDescription: (value: string) => void,
-  setPhases: React.Dispatch<React.SetStateAction<FormPhase[]>>,
-  setSelectedClient: React.Dispatch<React.SetStateAction<User | null>>,
+  setPhases: (value: FormPhase[]) => void,
+  setSelectedClient: (value: User | null) => void,
   setShowNewClientForm: (value: boolean) => void
 ) => {
-  setJobTitle('');
-  setClientName('');
-  setClientPhone('');
-  setClientEmail('');
-  setStartDate('');
-  setJobLocation('');
-  setDescription('');
+  setJobTitle("");
+  setFirstName("");
+  setLastName("");
+  setClientPhone("");
+  setClientEmail("");
+  setStartDate("");
+  setJobLocation("");
+  setDescription("");
   setPhases([]);
   setSelectedClient(null);
   setShowNewClientForm(false);
