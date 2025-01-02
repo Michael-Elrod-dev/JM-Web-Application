@@ -65,7 +65,6 @@ export default function JobDetailPage() {
           throw new Error("Failed to fetch job details");
         }
         const data = await response.json();
-        console.log("Raw API response:", data);
 
         const transformedJob: JobDetailView = {
           id: data.job.job_id,
@@ -321,18 +320,7 @@ export default function JobDetailPage() {
         </div>
       </header>
 
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Timeline</h2>
-        <CardFrame>
-          <Timeline
-            phases={job.phases}
-            currentWeek={job.currentWeek}
-            startDate={job.phases[0]?.startDate}
-            endDate={job.phases[job.phases.length - 1]?.endDate}
-          />
-        </CardFrame>
-      </section>
-
+      {/* Job Status Section */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Job Status</h2>
         <CardFrame>
@@ -384,6 +372,19 @@ export default function JobDetailPage() {
               </div>
             </div>
           </div>
+        </CardFrame>
+      </section>
+
+      {/* Timeline Section */}
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Timeline</h2>
+        <CardFrame>
+          <Timeline
+            phases={job.phases}
+            currentWeek={job.currentWeek}
+            startDate={job.phases[0]?.startDate}
+            endDate={job.phases[job.phases.length - 1]?.endDate}
+          />
         </CardFrame>
       </section>
 

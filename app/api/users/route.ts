@@ -11,7 +11,6 @@ export async function GET() {
     );
     connection.release();
     
-    // console.log('Fetched users:', rows);
     return NextResponse.json(rows);
   } catch (error) {
     console.error('Database error:', error);

@@ -5,16 +5,19 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 import ContactCard from "../ContactCard";
 import { FormMaterial } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
+import { MaterialCardProps } from "../../app/types/props"
+import { formatDate } from "../../handlers/utils";
+import {
+  handleDeleteClick,
+  handleConfirmDelete,
+  handleInputChange,
+  handleContactSelect,
+  handleContactRemove,
+  handleDone,
+  validateMaterial,
+} from "../../handlers/new/materials";
 
-interface MaterialCardProps {
-  material: FormMaterial;
-  onUpdate: (updatedMaterial: FormMaterial) => void;
-  onDelete: () => void;
-  phaseStartDate: string;
-  contacts: UserView[];
-}
-
-const MaterialCard: React.FC<MaterialCardProps> = ({
+const NewMaterialCard: React.FC<MaterialCardProps> = ({
   material,
   onUpdate,
   onDelete,
@@ -23,12 +26,20 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
 }) => {
   const [selectedContacts, setSelectedContacts] = useState<UserView[]>(
     material.selectedContacts
-      ?.map((id) => contacts.find((c) => c.user_id === parseInt(id.toString())) as UserView)
+      ?.map(
+        (id) =>
+          contacts.find(
+            (c) => c.user_id === parseInt(id.toString())
+          ) as UserView
+      )
       .filter(Boolean) || []
   );
-  const [localMaterial, setLocalMaterial] = useState<FormMaterial>(material);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [localMaterial, setLocalMaterial] = useState<FormMaterial>({
+    ...material,
+    isExpanded: false
+  });
 
   useEffect(() => {
     if (material.id === "" && !material.dueDate) {
@@ -39,76 +50,6 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     }
   }, [material.id, material.dueDate, phaseStartDate]);
 
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return "";
-    const date = new Date(dateString + "T00:00:00Z");
-    return new Date(
-      date.getTime() + date.getTimezoneOffset() * 60000
-    ).toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    onDelete();
-    setShowDeleteConfirm(false);
-  };
-
-  const handleInputChange = (field: keyof FormMaterial, value: string) => {
-    if (field === "dueDate") {
-      if (new Date(value) >= new Date(phaseStartDate)) {
-        setLocalMaterial((prev) => ({ ...prev, [field]: value }));
-        setErrors((prev) => ({ ...prev, [field]: "" }));
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          dueDate: "Due date cannot be before phase start date",
-        }));
-      }
-    } else {
-      setLocalMaterial((prev) => ({ ...prev, [field]: value }));
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const handleContactSelect = (contact: UserView) => {
-    setSelectedContacts([...selectedContacts, contact]);
-  };
-
-  const handleContactRemove = (userId: string) => {
-    setSelectedContacts(
-      selectedContacts.filter((contact) => contact.user_id.toString() !== userId)
-    );
-  };
-
-  const validateMaterial = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-    if (!localMaterial.title.trim()) newErrors.title = "Title is required";
-    if (!localMaterial.dueDate) newErrors.dueDate = "Due date is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleDone = () => {
-    if (validateMaterial()) {
-      const updatedMaterial = {
-        ...localMaterial,
-        selectedContacts: selectedContacts.map((contact) => ({
-          id: contact.user_id.toString(),
-        })),
-        isExpanded: false,
-      };
-      onUpdate(updatedMaterial);
-      setLocalMaterial(updatedMaterial);
-    }
-  };
-
   return (
     <div className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
       {localMaterial.isExpanded ? (
@@ -116,12 +57,20 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                Title<span className="text-red-500">*</span>
+                Title
               </label>
               <input
                 type="text"
                 value={localMaterial.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    "title",
+                    e.target.value,
+                    phaseStartDate,
+                    setLocalMaterial,
+                    setErrors
+                  )
+                }
                 className={`w-full p-2 border ${
                   errors.title
                     ? "border-red-500"
@@ -134,12 +83,20 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                Due Date<span className="text-red-500">*</span>
+                Due Date
               </label>
               <input
                 type="date"
                 value={localMaterial.dueDate}
-                onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    "title",
+                    e.target.value,
+                    phaseStartDate,
+                    setLocalMaterial,
+                    setErrors
+                  )
+                }
                 min={phaseStartDate}
                 className={`w-full p-2 border ${
                   errors.dueDate
@@ -158,7 +115,15 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
             </label>
             <textarea
               value={localMaterial.details}
-              onChange={(e) => handleInputChange("details", e.target.value)}
+              onChange={(e) =>
+                handleInputChange(
+                  "title",
+                  e.target.value,
+                  phaseStartDate,
+                  setLocalMaterial,
+                  setErrors
+                )
+              }
               className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
               rows={3}
             />
@@ -173,7 +138,11 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
                   (contact) => contact.user_id === parseInt(e.target.value)
                 );
                 if (selectedContact) {
-                  handleContactSelect(selectedContact);
+                  handleContactSelect(
+                    selectedContact,
+                    selectedContacts,
+                    setSelectedContacts
+                  );
                   e.target.value = "";
                 }
               }}
@@ -198,7 +167,13 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
                     showCheckbox={false}
                   />
                   <button
-                    onClick={() => handleContactRemove(contact.user_id.toString())}
+                    onClick={() =>
+                      handleContactRemove(
+                        contact.user_id.toString(),
+                        selectedContacts,
+                        setSelectedContacts
+                      )
+                    }
                     className="absolute top-0.5 right-2 text-zinc-400 hover:text-zinc-600"
                   >
                     <FaTrash size={16} />
@@ -209,13 +184,21 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
           </div>
           <div className="mt-4 flex justify-end">
             <button
-              onClick={handleDone}
+              onClick={() =>
+                handleDone(
+                  localMaterial,
+                  selectedContacts,
+                  setLocalMaterial,
+                  setErrors,
+                  onUpdate
+                )
+              }
               className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
               Done
             </button>
             <button
-              onClick={handleDeleteClick}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
@@ -240,7 +223,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
               <FaEdit size={18} />
             </button>
             <button
-              onClick={handleDeleteClick}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
               className="text-zinc-400 hover:text-red-500 transition-colors"
             >
               <FaTrash size={18} />
@@ -266,7 +249,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
                 Cancel
               </button>
               <button
-                onClick={handleConfirmDelete}
+                onClick={() => handleDeleteClick(setShowDeleteConfirm)}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete
@@ -279,4 +262,4 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   );
 };
 
-export default MaterialCard;
+export default NewMaterialCard;

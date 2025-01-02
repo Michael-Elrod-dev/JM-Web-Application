@@ -25,27 +25,31 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
     };
   }, [isModalOpen]);
 
-  const renderDropdown = (label: string, items: TaskView[] | MaterialView[] | string[]) => {
+  const renderDropdown = (
+    label: string,
+    items: TaskView[] | MaterialView[] | string[]
+  ) => {
     // Convert label for dropdown placeholder
-    const displayLabel = label === "Tasks" 
-      ? "View Tasks" 
-      : label === "Materials" 
-        ? "View Materials"
-        : "View Contacts";
-  
+    const displayLabel =
+      label === "Tasks"
+        ? "Tasks"
+        : label === "Materials"
+        ? "Materials"
+        : "Contacts";
+
     return (
       <div className="mb-8">
         <div className="relative">
-          <select 
+          <select
             className="block appearance-none w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline dark:text-white"
             onChange={() => {}}
             value=""
-            style={{ maxHeight: '240px' }}
+            style={{ maxHeight: "240px" }}
           >
             <option value="" disabled>
               {displayLabel} {/* Placeholder text inside the dropdown */}
             </option>
-            {label === "Contacts" 
+            {label === "Contacts"
               ? (items as string[]).map((name, index) => (
                   <option key={`contact-${index}`} value={name}>
                     {name}
@@ -55,12 +59,12 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
                   if (label === "Tasks") {
                     const task = item as TaskView;
                     return (
-                      <option 
+                      <option
                         key={`task-${task.task_id}`}
                         className={`${
-                          task.task_status === 'Complete' 
-                            ? 'bg-green-100 dark:bg-green-900/30' 
-                            : 'bg-red-100 dark:bg-red-900/30'
+                          task.task_status === "Complete"
+                            ? "bg-green-100 dark:bg-green-900/30"
+                            : "bg-red-100 dark:bg-red-900/30"
                         }`}
                         value={`${task.task_title}-${task.task_status}`}
                       >
@@ -70,12 +74,12 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
                   } else {
                     const material = item as MaterialView;
                     return (
-                      <option 
+                      <option
                         key={`material-${material.material_id}`}
                         className={`${
-                          material.material_status === 'Complete' 
-                            ? 'bg-green-100 dark:bg-green-900/30' 
-                            : 'bg-red-100 dark:bg-red-900/30'
+                          material.material_status === "Complete"
+                            ? "bg-green-100 dark:bg-green-900/30"
+                            : "bg-red-100 dark:bg-red-900/30"
                         }`}
                         value={`${material.material_title}-${material.material_status}`}
                       >
@@ -83,18 +87,21 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
                       </option>
                     );
                   }
-                })
-            }
+                })}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-            <svg className="fill-current h-4 w-4 text-zinc-500 dark:text-zinc-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <svg
+              className="fill-current h-4 w-4 text-zinc-500 dark:text-zinc-400"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+            >
               <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
             </svg>
           </div>
         </div>
       </div>
     );
-  };  
+  };
 
   const startDate = props.job_startdate;
   const endDate = props.phases[props.phases.length - 1]?.endDate;
@@ -117,26 +124,27 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
         </Link>
       </div>
 
-<div className="flex h-[250px]">
-  <div className="w-2/3 pr-4 flex flex-col pt-8">
-    {renderDropdown("Tasks", props.tasks)}
-    {renderDropdown("Materials", props.materials)}
-    {props.workers.length > 0 && renderDropdown("Contacts", props.workers)}
-  </div>
-  <div
-    className="w-1/3 h-full relative cursor-pointer"
-    onClick={() => setIsModalOpen(true)}
-  >
-    <Image
-      src="/placeholder-floorplan.jpg"
-      alt="Floor Plan"
-      fill
-      className="object-contain"
-    />
-  </div>
-</div>
+      <div className="flex h-[250px]">
+        <div className="w-2/3 pr-4 flex flex-col pt-8">
+          {renderDropdown("Tasks", props.tasks)}
+          {renderDropdown("Materials", props.materials)}
+          {props.workers.length > 0 &&
+            renderDropdown("Contacts", props.workers)}
+        </div>
+        <div
+          className="w-1/3 h-full relative cursor-pointer"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <Image
+            src="/placeholder-floorplan.jpg"
+            alt="Floor Plan"
+            fill
+            className="object-contain"
+          />
+        </div>
+      </div>
 
-      <div className="my-0">
+      <div className="my-2">
         <div className="flex items-center justify-center space-x-8 mb-3">
           <div className="flex items-center">
             <div className="w-4 h-4 bg-red-500 mr-2"></div>

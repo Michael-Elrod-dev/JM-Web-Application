@@ -1,10 +1,4 @@
 // handlers/phases.tsx
-
-export const calculateEndDate = (start: string, durationDays: number): string => {
-    const date = new Date(start);
-    date.setDate(date.getDate() + durationDays);
-    return date.toISOString().split('T')[0];
-  };
   
   export const calculateDuration = (start: string, end: string): number => {
     const startDate = new Date(start);

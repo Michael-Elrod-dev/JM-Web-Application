@@ -3,34 +3,42 @@
 import React, { useState, useEffect } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import ContactCard from "../ContactCard";
-import { calculateEndDate } from "../../handlers/phases";
 import { FormTask } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
+import { TaskCardProps } from "../../app/types/props"
+import { formatDate } from "../../handlers/utils";
+import {
+  handleStartDateChange,
+  handleInputChange,
+  handleDurationChange,
+  handleContactSelect,
+  handleContactRemove,
+  handleDeleteClick,
+  handleConfirmDelete,
+  handleDone,
+  validateTask,
+} from "../../handlers/new/tasks";
 
-interface TaskCardProps {
-  task: FormTask;
-  onUpdate: (updatedTask: FormTask) => void;
-  onDelete: () => void;
-  phaseStartDate: string;
-  contacts: UserView[];
-}
 
-const TaskCard: React.FC<TaskCardProps> = ({
+const NewTaskCard: React.FC<TaskCardProps> = ({
   task,
   onUpdate,
   onDelete,
   phaseStartDate,
   contacts,
 }) => {
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [localTask, setLocalTask] = useState<FormTask>({
+    ...task,
+    isExpanded: false
+  });
   const [selectedContacts, setSelectedContacts] = useState<UserView[]>(
     task.selectedContacts
       ?.map((id) => contacts.find((c) => c.user_id === parseInt(id.toString())) as UserView)
       .filter(Boolean) || []
   );
-  const [localTask, setLocalTask] = useState<FormTask>(task);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
+  
   useEffect(() => {
     if (task.id === "" && !task.startDate) {
       setLocalTask((prev) => ({
@@ -40,103 +48,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   }, [task.id, task.startDate, phaseStartDate]);
 
-  const handleStartDateChange = (newStartDate: string) => {
-    if (new Date(newStartDate) >= new Date(phaseStartDate)) {
-      setLocalTask((prev) => ({
-        ...prev,
-        startDate: newStartDate,
-      }));
-      setErrors((prev) => ({ ...prev, startDate: "" }));
-    } else {
-      setErrors((prev) => ({
-        ...prev,
-        startDate: "Task cannot start before phase start date",
-      }));
-    }
-  };
-
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return "";
-    const date = new Date(dateString + "T00:00:00");
-    return date.toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  };
-
-  const handleInputChange = (field: keyof FormTask, value: string) => {
-    setLocalTask((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
-
-  const handleDurationChange = (newDuration: string) => {
-    const newDueDate = calculateEndDate(
-      localTask.startDate,
-      parseInt(newDuration) || 0
-    );
-    setLocalTask((prev) => ({
-      ...prev,
-      duration: newDuration,
-      dueDate: newDueDate,
-    }));
-  };
-
-  const handleContactSelect = (contact: UserView) => {
-    setSelectedContacts([...selectedContacts, contact]);
-  };
-
-  const handleContactRemove = (userId: string) => {
-    setSelectedContacts(
-      selectedContacts.filter((contact) => contact.user_id.toString() !== userId)
-    );
-  };
-
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    onDelete();
-    setShowDeleteConfirm(false);
-  };
-
-  const validateTask = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-    if (!localTask.title.trim()) newErrors.title = "Title is required";
-    if (!localTask.startDate) newErrors.startDate = "Start date is required";
-    if (!localTask.duration) newErrors.duration = "Duration is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleDone = () => {
-    if (validateTask()) {
-      const updatedTask = {
-        ...localTask,
-        selectedContacts: selectedContacts.map((contact) => ({
-          id: contact.user_id.toString(),
-        })),
-        isExpanded: false,
-      };
-      onUpdate(updatedTask);
-      setLocalTask(updatedTask);
-    }
-  };
-
   return (
     <div className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
       {localTask.isExpanded ? (
         <div>
           <div className="mb-2">
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-              Title<span className="text-red-500">*</span>
+              Title
             </label>
             <input
               type="text"
               value={localTask.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
+              onChange={(e) => handleInputChange("title", e.target.value, setLocalTask, setErrors)}
               className={`w-full p-2 border ${
                 errors.title
                   ? "border-red-500"
@@ -150,12 +73,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                Start Date<span className="text-red-500">*</span>
+                Start Date
               </label>
               <input
                 type="date"
                 value={localTask.startDate}
-                onChange={(e) => handleStartDateChange(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value, phaseStartDate, setLocalTask, setErrors)}
                 min={phaseStartDate}
                 className={`w-full p-2 border ${
                   errors.startDate
@@ -169,12 +92,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                Duration (days)<span className="text-red-500">*</span>
+                Duration (days)
               </label>
               <input
                 type="number"
                 value={localTask.duration}
-                onChange={(e) => handleDurationChange(e.target.value)}
+                onChange={(e) => handleDurationChange(e.target.value, localTask, setLocalTask)}
                 min="1"
                 className={`w-full p-2 border ${
                   errors.duration
@@ -193,7 +116,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </label>
             <textarea
               value={localTask.details}
-              onChange={(e) => handleInputChange("details", e.target.value)}
+              onChange={(e) => handleInputChange("title", e.target.value, setLocalTask, setErrors)}
               className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
               rows={3}
             />
@@ -208,7 +131,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   (contact) => contact.user_id === parseInt(e.target.value)
                 );
                 if (selectedContact) {
-                  handleContactSelect(selectedContact);
+                  handleContactSelect(selectedContact, selectedContacts, setSelectedContacts);
                   e.target.value = "";
                 }
               }}
@@ -233,7 +156,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     showCheckbox={false}
                   />
                   <button
-                    onClick={() => handleContactRemove(contact.user_id.toString())}
+                    onClick={() => handleContactRemove(contact.user_id.toString(), selectedContacts, setSelectedContacts)}
                     className="absolute top-2 right-2 text-zinc-400 hover:text-red-600"
                   >
                     <FaTrash size={16} />
@@ -244,13 +167,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
           <div className="mt-4 flex justify-end">
             <button
-              onClick={handleDone}
+              onClick={() => handleDone(localTask, selectedContacts, onUpdate, setLocalTask, setErrors)}
               className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
               Done
             </button>
             <button
-              onClick={handleDeleteClick}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
@@ -275,7 +198,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <FaEdit size={18} />
             </button>
             <button
-              onClick={handleDeleteClick}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
               className="text-zinc-400 hover:text-red-500 transition-colors"
             >
               <FaTrash size={18} />
@@ -301,7 +224,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 Cancel
               </button>
               <button
-                onClick={handleConfirmDelete}
+                onClick={() => handleConfirmDelete(onDelete, setShowDeleteConfirm)}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete
@@ -314,4 +237,4 @@ const TaskCard: React.FC<TaskCardProps> = ({
   );
 };
 
-export default TaskCard;
+export default NewTaskCard;

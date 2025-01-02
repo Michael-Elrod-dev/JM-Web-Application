@@ -19,11 +19,11 @@ interface Worker extends RowDataPacket {
 }
 
 interface Phase extends RowDataPacket {
-    id: number;
-    name: string;
-    startWeek: number;
-    endWeek: number;
-    color: string;
+  id: number;
+  name: string;
+  startWeek: number;
+  endWeek: number;
+  color: string;
 }
 
 interface TaskCount extends RowDataPacket {
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
   try {
     const connection = await pool.getConnection();
-    
+
     try {
       // Overview query (used by the main jobs page)
       if (view === 'overview') {
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
           WHERE j.job_status = ?
           GROUP BY j.job_id, j.job_title
         `, [status]);
-      
+
         return NextResponse.json({ jobs });
       }
 
@@ -211,23 +211,23 @@ export async function GET(request: Request) {
           WHERE p.job_id = ?
         `, [job.job_id]);
 
-// Get tasks with status
-const [tasks] = await connection.query<Task[]>(`
-  SELECT t.task_title, t.task_status
-  FROM task t
-  JOIN phase p ON t.phase_id = p.phase_id
-  WHERE p.job_id = ?
-  ORDER BY t.task_title
-`, [job.job_id]);
+        // Get tasks with status
+        const [tasks] = await connection.query<Task[]>(`
+          SELECT t.task_title, t.task_status
+          FROM task t
+          JOIN phase p ON t.phase_id = p.phase_id
+          WHERE p.job_id = ?
+          ORDER BY t.task_title
+        `, [job.job_id]);
 
-// Get materials with status
-const [materials] = await connection.query<Material[]>(`
-  SELECT m.material_title, m.material_status
-  FROM material m
-  JOIN phase p ON m.phase_id = p.phase_id
-  WHERE p.job_id = ?
-  ORDER BY m.material_title
-`, [job.job_id]);
+        // Get materials with status
+        const [materials] = await connection.query<Material[]>(`
+          SELECT m.material_title, m.material_status
+          FROM material m
+          JOIN phase p ON m.phase_id = p.phase_id
+          WHERE p.job_id = ?
+          ORDER BY m.material_title
+        `, [job.job_id]);
 
         // Get workers
         const [workers] = await connection.query<Worker[]>(`
@@ -277,7 +277,7 @@ const [materials] = await connection.query<Material[]>(`
             WHERE p.job_id = ?
             ORDER BY p.phase_startdate
         `, [job.job_id]);
-        
+
         // Combine task and material counts
         const overdue = (taskCounts[0]?.overdue || 0) + (materialCounts[0]?.overdue || 0);
         const nextSevenDays = (taskCounts[0]?.next_seven_days || 0) + (materialCounts[0]?.next_seven_days || 0);
@@ -285,11 +285,11 @@ const [materials] = await connection.query<Material[]>(`
 
         return {
           ...job,
-          tasks: tasks.map((t: Task) => ({ 
+          tasks: tasks.map((t: Task) => ({
             task_title: t.task_title,
             task_status: t.task_status
           })),
-          materials: materials.map((m: Material) => ({ 
+          materials: materials.map((m: Material) => ({
             material_title: m.material_title,
             material_status: m.material_status
           })),

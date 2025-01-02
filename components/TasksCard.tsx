@@ -1,158 +1,281 @@
 // components/TasksCard.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SmallCardFrame from "./SmallCardFrame";
 import StatusButton from "./StatusButton";
-
-interface User {
-  user_id: number;
-  user_name: string;
-  user_phone: string;
-  user_email: string;
-}
-
-interface Task {
-  task_id: number;
-  task_title: string;
-  task_startdate: string;
-  task_duration: number;
-  task_status: string;
-  task_description: string;
-  users: User[];
-}
+import { TaskView, UserView } from "../app/types/views";
+import { TaskUpdatePayload } from "@/app/types/database";
 
 interface TasksCardProps {
-  tasks: Task[];
+ tasks: TaskView[];
 }
 
 const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [localTasks, setLocalTasks] = useState(tasks);
   const [activeModal, setActiveModal] = useState<number | null>(null);
+  const [allUsers, setAllUsers] = useState<UserView[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const calculateDueDate = (startDate: string, duration: number): string => {
-    try {
-      const date = new Date(startDate);
-      if (isNaN(date.getTime())) {
-        throw new Error("Invalid start date");
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
       }
-      date.setDate(date.getDate() + duration + 1);
-      return date.toLocaleDateString("en-US", {
-        month: "numeric",
-        day: "numeric",
-      });
-    } catch (error) {
-      console.error("Error calculating due date:", error);
-      return "Invalid Date";
-    }
-  };
+    };
 
-  const handleStatusChange = (taskId: number, newStatus: string) => {
-    setLocalTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.task_id === taskId ? { ...task, task_status: newStatus } : task
-      )
-    );
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
-  const handleCardClick = (e: React.MouseEvent, taskId: number) => {
-    if (!(e.target as HTMLElement).closest(".status-button")) {
-      setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
-    }
-  };
+ useEffect(() => {
+   const fetchUsers = async () => {
+     try {
+       const response = await fetch("/api/users");
+       if (!response.ok) throw new Error("Failed to fetch users");
+       const data = await response.json();
 
-  return (
-    <div className="space-y-2">
-      <h4 className="text-md font-semibold mb-2">Tasks</h4>
-      <div className="space-y-2">
-        {localTasks.map((task) => {
-          const dueDate = calculateDueDate(
-            task.task_startdate,
-            task.task_duration
-          );
-          const isExpanded = expandedTaskId === task.task_id;
+       // Transform the data to match UserView interface
+       const transformedUsers: UserView[] = data.map((user: any) => ({
+         user_id: user.user_id,
+         first_name: user.user_first_name,
+         last_name: user.user_last_name,
+         user_email: user.user_email,
+         user_phone: user.user_phone || "",
+       }));
 
-          return (
-            <div key={task.task_id}>
-              <SmallCardFrame>
-                <div
-                  onClick={(e) => handleCardClick(e, task.task_id)}
-                  className="cursor-pointer"
-                >
-                  <div className="grid grid-cols-3 items-center">
-                    <span className="text-sm font-medium col-span-1">
-                      {task.task_title}
-                    </span>
-                    <span className="text-sm text-center col-span-1">
-                      {dueDate}
-                    </span>
-                    <div className="flex justify-end col-span-1">
-                      <div className="status-button">
-                        <StatusButton
-                          id={task.task_id}
-                          type="task"
-                          currentStatus={task.task_status}
-                          onStatusChange={(newStatus) =>
-                            handleStatusChange(task.task_id, newStatus)
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
+       setAllUsers(transformedUsers);
+     } catch (error) {
+       console.error("Error fetching users:", error);
+     }
+   };
 
-                  {isExpanded && (
-                    <div className="mt-2 pt-2 border-t">
-                      {task.task_description && (
-                        <div className="mb-4">
-                          <h5 className="text-sm font-medium mb-2">
-                            Description:
-                          </h5>
-                          <SmallCardFrame>
-                            <p className="text-sm">{task.task_description}</p>
-                          </SmallCardFrame>
-                        </div>
-                      )}
+   fetchUsers();
+ }, []);
 
-                      {task.users && task.users.length > 0 && (
-                        <div className="space-y-2">
-                          <h5 className="text-sm font-medium mb-2">
-                            Assigned People:
-                          </h5>
-                          {task.users.map((user) => (
-                            <SmallCardFrame key={user.user_id}>
-                              <div className="grid grid-cols-3 items-center">
-                                <span className="text-sm">
-                                  {user.user_name}
-                                </span>
-                                <span className="text-sm text-center">
-                                  {user.user_phone}
-                                </span>
-                                <span className="text-sm text-right">
-                                  {user.user_email}
-                                </span>
-                              </div>
-                            </SmallCardFrame>
-                          ))}
-                        </div>
-                      )}
+ useEffect(() => {
+   if (activeModal !== null) {
+     const task = localTasks.find(t => t.task_id === activeModal);
+     if (task) {
+       setSelectedUsers(new Set(task.users.map(u => u.user_id)));
+     }
+   } else {
+     setSelectedUsers(new Set());
+   }
+ }, [activeModal, localTasks]);
 
-                      <div className="mt-4 flex justify-end">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveModal(task.task_id);
-                          }}
-                          className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </SmallCardFrame>
+ const handleUserSelection = (userId: number) => {
+   setSelectedUsers(prev => {
+     const newSelection = new Set(prev);
+     if (newSelection.has(userId)) {
+       newSelection.delete(userId);
+     } else {
+       newSelection.add(userId);
+     }
+     return newSelection;
+   });
+ };
 
-              {/* Edit Task Modal */}
-              {activeModal === task.task_id && (
+ const calculateDueDate = (startDate: string, duration: number): string => {
+   try {
+     const date = new Date(startDate);
+     if (isNaN(date.getTime())) {
+       throw new Error("Invalid start date");
+     }
+     date.setDate(date.getDate() + duration + 1);
+     return date.toLocaleDateString("en-US", {
+       month: "numeric",
+       day: "numeric",
+     });
+   } catch (error) {
+     console.error("Error calculating due date:", error);
+     return "Invalid Date";
+   }
+ };
+
+ const handleStatusChange = (taskId: number, newStatus: string) => {
+   setLocalTasks((prevTasks) =>
+     prevTasks.map((task) =>
+       task.task_id === taskId ? { ...task, task_status: newStatus } : task
+     )
+   );
+ };
+
+ const handleCardClick = (e: React.MouseEvent, taskId: number) => {
+   if (!(e.target as HTMLElement).closest(".status-button")) {
+     setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
+   }
+ };
+
+ const setsAreEqual = (a: Set<number>, b: Set<number>) => {
+   const arrayA = Array.from(a);
+   const arrayB = Array.from(b);
+   if (arrayA.length !== arrayB.length) return false;
+   return arrayA.every(item => arrayB.includes(item));
+ };
+
+ const handleSaveChanges = async (taskId: number) => {
+   const task = localTasks.find(t => t.task_id === taskId);
+   if (!task) return;
+
+   const changes: TaskUpdatePayload = {};
+   let hasChanges = false;
+
+   const titleInput = document.getElementById(
+     `task-title-${taskId}`
+   ) as HTMLInputElement;
+   const descriptionInput = document.getElementById(
+     `task-description-${taskId}`
+   ) as HTMLTextAreaElement;
+   const extensionInput = document.getElementById(
+     `task-extension-${taskId}`
+   ) as HTMLInputElement;
+
+   if (titleInput && titleInput.value !== task.task_title) {
+     changes.task_title = titleInput.value;
+     hasChanges = true;
+   }
+
+   if (descriptionInput && descriptionInput.value !== task.task_description) {
+     changes.task_description = descriptionInput.value;
+     hasChanges = true;
+   }
+
+   const extensionDays = extensionInput ? parseInt(extensionInput.value) : 0;
+   if (!isNaN(extensionDays)) {
+     changes.extension_days = extensionDays;
+     hasChanges = true;
+   }
+
+   // Check if user selection has changed
+   const currentUserIds = new Set(task.users.map(u => u.user_id));
+   if (!setsAreEqual(currentUserIds, selectedUsers)) {
+     changes.new_users = Array.from(selectedUsers);
+     hasChanges = true;
+   }
+
+   if (hasChanges) {
+     try {
+       const jobId = window.location.pathname.split("/")[2];
+       const response = await fetch(`/api/jobs/${jobId}/tasks/${taskId}`, {
+         method: "PATCH",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify(changes),
+       });
+
+       if (!response.ok) {
+         throw new Error("Failed to update task");
+       }
+
+       setActiveModal(null);
+       window.location.reload();
+     } catch (error) {
+       console.error("Error updating task:", error);
+     }
+   } else {
+     setActiveModal(null);
+   }
+ };
+
+ return (
+   <div className="space-y-2">
+     <h4 className="text-md font-semibold mb-2">Tasks</h4>
+     <div className="space-y-2">
+       {localTasks.map((task) => {
+         const dueDate = calculateDueDate(
+           task.task_startdate,
+           task.task_duration
+         );
+         const isExpanded = expandedTaskId === task.task_id;
+
+         return (
+           <div key={task.task_id}>
+             <SmallCardFrame>
+               <div
+                 onClick={(e) => handleCardClick(e, task.task_id)}
+                 className="cursor-pointer"
+               >
+                 <div className="grid grid-cols-3 items-center">
+                   <span className="text-sm font-medium col-span-1">
+                     {task.task_title}
+                   </span>
+                   <span className="text-sm text-center col-span-1">
+                     {dueDate}
+                   </span>
+                   <div className="flex justify-end col-span-1">
+                     <div className="status-button">
+                       <StatusButton
+                         id={task.task_id}
+                         type="task"
+                         currentStatus={task.task_status}
+                         onStatusChange={(newStatus) =>
+                           handleStatusChange(task.task_id, newStatus)
+                         }
+                       />
+                     </div>
+                   </div>
+                 </div>
+
+                 {isExpanded && (
+                   <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-600">
+                     {task.task_description && (
+                       <div className="mb-4">
+                         <h5 className="text-sm font-medium mb-2">
+                           Description:
+                         </h5>
+                         <SmallCardFrame>
+                           <p className="text-sm">{task.task_description}</p>
+                         </SmallCardFrame>
+                       </div>
+                     )}
+
+                     {task.users && task.users.length > 0 && (
+                       <div className="space-y-2">
+                         <h5 className="text-sm font-medium mb-2">
+                           Assigned People:
+                         </h5>
+                         {task.users.map((user) => (
+                           <SmallCardFrame key={user.user_id}>
+                             <div className="grid grid-cols-3 items-center">
+                               <span className="text-sm">
+                                 {`${user.first_name} ${user.last_name}`}
+                               </span>
+                               <span className="text-sm text-center">
+                                 {user.user_phone}
+                               </span>
+                               <span className="text-sm text-right">
+                                 {user.user_email}
+                               </span>
+                             </div>
+                           </SmallCardFrame>
+                         ))}
+                       </div>
+                     )}
+
+                     <div className="mt-4 flex justify-end">
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setActiveModal(task.task_id);
+                         }}
+                         className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors"
+                       >
+                         Edit
+                       </button>
+                     </div>
+                   </div>
+                 )}
+               </div>
+             </SmallCardFrame>
+
+{/* Edit Task Modal */}
+{activeModal === task.task_id && (
                 <div
                   className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
                   onClick={(e) => {
@@ -191,6 +314,7 @@ const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
                             Title
                           </label>
                           <input
+                            id={`task-title-${task.task_id}`}
                             type="text"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:border-zinc-600"
                             defaultValue={task.task_title}
@@ -202,6 +326,7 @@ const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
                             Description
                           </label>
                           <textarea
+                            id={`task-description-${task.task_id}`}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:border-zinc-600"
                             rows={3}
                             defaultValue={task.task_description}
@@ -213,6 +338,7 @@ const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
                             Add Extension (Days)
                           </label>
                           <input
+                            id={`task-extension-${task.task_id}`}
                             type="number"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:border-zinc-600"
                             placeholder="Number of days"
@@ -221,41 +347,93 @@ const TasksCard: React.FC<TasksCardProps> = ({ tasks }) => {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Change Primary Contact
-                          </label>
-                          <select className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:border-zinc-600">
-                            <option value="">Select Primary Contact</option>
-                            {task.users.map((user) => (
-                              <option key={user.user_id} value={user.user_id}>
-                                {user.user_name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Add People
                           </label>
-                          <select className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:border-zinc-600">
-                            <option value="">Select Person to Add</option>
-                            <option value="1">John Doe</option>
-                            <option value="2">Jane Smith</option>
-                            <option value="3">Bob Johnson</option>
-                          </select>
-                        </div>
-                      </div>
+                          <div className="relative" ref={dropdownRef}>
+                            <input
+                              type="text"
+                              placeholder="Search people..."
+                              value={userSearchQuery}
+                              onChange={(e) => setUserSearchQuery(e.target.value)}
+                              onClick={() => setIsDropdownOpen(true)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:border-zinc-600"
+                            />
+                            {isDropdownOpen && (
+                              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                {allUsers
+                                  .filter(user => 
+                                    !selectedUsers.has(user.user_id) && 
+                                    (`${user.first_name} ${user.last_name}`
+                                      .toLowerCase()
+                                      .includes(userSearchQuery.toLowerCase()) ||
+                                    user.user_email.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                                  )
+                                  .map(user => (
+                                    <div
+                                      key={user.user_id}
+                                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer"
+                                      onClick={() => {
+                                        handleUserSelection(user.user_id);
+                                        setIsDropdownOpen(false);
+                                      }}
+                                    >
+                                      {`${user.first_name} ${user.last_name} (${user.user_email})`}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
 
-                      <div className="mt-8 flex justify-end gap-4">
-                        <button
-                          onClick={() => setActiveModal(null)}
-                          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
-                          Save Changes
-                        </button>
+                            {/* Selected Users List */}
+                            <div className="flex flex-wrap gap-2 mt-4">
+                              {Array.from(selectedUsers).map(userId => {
+                                const user = allUsers.find(u => u.user_id === userId);
+                                if (!user) return null;
+                                
+                                return (
+                                  <div 
+                                    key={userId}
+                                    className="flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+                                  >
+                                    <span>{`${user.first_name} ${user.last_name}`}</span>
+                                    <button
+                                      onClick={() => handleUserSelection(userId)}
+                                      className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                                    >
+                                      <svg 
+                                        className="w-4 h-4" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path 
+                                          strokeLinecap="round" 
+                                          strokeLinejoin="round" 
+                                          strokeWidth={2} 
+                                          d="M6 18L18 6M6 6l12 12" 
+                                        />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-8 flex justify-end gap-4">
+                          <button
+                            onClick={() => setActiveModal(null)}
+                            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveChanges(task.task_id)}
+                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          >
+                            Save Changes
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

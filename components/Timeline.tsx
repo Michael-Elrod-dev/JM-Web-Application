@@ -13,8 +13,6 @@ const Timeline: React.FC<TimelineProps> = ({
   const topMargin = 20;
   const requiredHeight = topMargin + phases.length * phaseHeight;
 
-  console.log("Timeline Props:", { startDate, endDate, phases });
-
   const parseDate = (dateStr: string) => {
     // Handle both YYYY-MM-DD and MM/DD formats
     if (dateStr.includes("-")) {
@@ -34,23 +32,12 @@ const Timeline: React.FC<TimelineProps> = ({
     (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  console.log("Timeline Date Objects:", {
-    startDateObj,
-    endDateObj,
-    totalDays,
-  });
-
   const getPositionPercentage = (date: string) => {
     const dateObj = new Date(date); // Phase dates should be in YYYY-MM-DD format
     const daysDiff = Math.ceil(
       (dateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)
     );
     const percentage = (daysDiff / totalDays) * 100;
-    console.log("Position Calculation:", {
-      date,
-      daysDiff,
-      percentage,
-    });
     return Math.max(0, Math.min(100, percentage));
   };
 
@@ -61,12 +48,6 @@ const Timeline: React.FC<TimelineProps> = ({
       (endObj.getTime() - startObj.getTime()) / (1000 * 60 * 60 * 24)
     );
     const percentage = (phaseDays / totalDays) * 100;
-    console.log("Width Calculation:", {
-      phaseStartDate,
-      phaseEndDate,
-      phaseDays,
-      percentage,
-    });
     return Math.max(1, Math.min(100, percentage));
   };
 

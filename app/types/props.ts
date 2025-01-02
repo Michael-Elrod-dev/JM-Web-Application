@@ -1,7 +1,7 @@
 // types/props.ts
 import { ReactNode } from 'react';
-import { FormPhase } from './database';
-import { UserView, PhaseView, TaskView, MaterialView, NavTab } from './views';
+import { FormPhase, FormMaterial, FormTask } from './database';
+import { UserView, PhaseView, NoteView, NavTab } from './views';
 
 
 export interface DetailPhaseCardProps {
@@ -48,19 +48,26 @@ export interface DetailPhaseCardProps {
 
 export interface PhaseCardProps {
   phase: FormPhase;
-  phaseNumber: number;
   onDelete: () => void;
   jobStartDate: string;
   onUpdate: (updatedPhase: FormPhase) => void;
   contacts: UserView[];
 }
 
-export interface TasksCardProps {
-  tasks: TaskView[];
+export interface TaskCardProps {
+  task: FormTask;
+  onUpdate: (updatedTask: FormTask) => void;
+  onDelete: () => void;
+  phaseStartDate: string;
+  contacts: UserView[];
 }
 
-export interface MaterialsCardProps {
-  materials: MaterialView[];
+export interface MaterialCardProps {
+  material: FormMaterial;
+  onUpdate: (updatedMaterial: FormMaterial) => void;
+  onDelete: () => void;
+  phaseStartDate: string;
+  contacts: UserView[];
 }
 
 export interface ContactCardProps {
@@ -90,3 +97,10 @@ export interface CardFrameProps {
     className?: string;
   }
   
+export interface NoteProps extends NoteView {
+    onClick: () => void;
+    isExpanded: boolean;
+    onAddNote?: () => void;
+    newNote?: string;
+    onNewNoteChange?: (value: string) => void;
+  }

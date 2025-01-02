@@ -33,10 +33,6 @@ export function transformFormDataToNewJob(formData: {
   jobLocation?: string;
   description?: string;
   selectedClient?: { user_id: number } | null;
-  firstName?: string;
-  lastName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
   phases: Array<{
     title: string;
     startDate: string;
@@ -64,13 +60,7 @@ export function transformFormDataToNewJob(formData: {
     startDate: formData.startDate,
     location: formData.jobLocation,
     description: formData.description,
-    client: {
-      user_id: formData.selectedClient?.user_id,
-      user_first_name: formData.firstName,
-      user_last_name: formData.lastName,
-      user_email: formData.clientEmail,
-      user_phone: formData.clientPhone,
-    },
+    client: formData.selectedClient || null,
     phases: formData.phases.map(phase => ({
       title: phase.title,
       startDate: phase.startDate,
@@ -110,15 +100,6 @@ export const handleAddPhase = (
     notes: []
   };
   setPhases([...phases, newPhase]);
-};
-
-export const handleDeletePhase = (
-  index: number,
-  phases: FormPhase[],
-  setPhases: React.Dispatch<React.SetStateAction<FormPhase[]>>
-) => {
-  const newPhases = phases.filter((_, i) => i !== index);
-  setPhases(newPhases);
 };
 
 export const handleCancel = (

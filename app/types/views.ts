@@ -56,7 +56,7 @@ export interface NoteView {
   note_details: string;
   created_at: string;
   created_by: {
-    user_name: string;
+    user: UserView;
   };
 }
 

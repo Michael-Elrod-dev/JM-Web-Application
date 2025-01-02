@@ -56,3 +56,7 @@ input[type="date"]:valid::-webkit-datetime-edit-day-field,
 input[type="date"]:valid::-webkit-datetime-edit-year-field {
     color: currentColor;
 }
+
+.no-hover-highlight option:hover {
+  background-color: inherit !important;
+}

@@ -17,9 +17,7 @@ export default function ActiveJobsPage() {
       try {
         const response = await fetch("/api/jobs?view=detailed&status=active");
         const data = await response.json();
-        
-        console.log("Raw API response:", data.jobs);
-    
+            
         const transformedJobs = data.jobs.map((job: any): JobDetailView => ({
           id: job.job_id,
           jobName: job.job_title,
@@ -59,7 +57,6 @@ export default function ActiveJobsPage() {
           workers: job.workers || [],
         }));
 
-        console.log("Transformed jobs:", transformedJobs);
         setJobs(transformedJobs);
         
       } catch (error) {

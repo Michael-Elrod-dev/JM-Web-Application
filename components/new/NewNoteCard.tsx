@@ -10,12 +10,15 @@ interface NoteCardProps {
   onDelete: () => void;
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ 
+const NewNoteCard: React.FC<NoteCardProps> = ({ 
   note, 
   onUpdate, 
   onDelete 
 }) => {
-  const [localNote, setLocalNote] = useState<FormNote>(note);
+  const [localNote, setLocalNote] = useState<FormNote>({
+    ...note,
+    isExpanded: false
+  });
 
   useEffect(() => {
     setLocalNote(note);
@@ -86,4 +89,4 @@ const NoteCard: React.FC<NoteCardProps> = ({
   );
 };
 
-export default NoteCard;
+export default NewNoteCard;

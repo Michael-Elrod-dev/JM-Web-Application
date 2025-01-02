@@ -60,9 +60,6 @@ interface StatusCounts extends RowDataPacket {
   sevenDaysPlus: number;
 }
 
-interface NoteDetails extends RowDataPacket {
-  note_details: string;
-}
 
 export async function GET(
   request: Request,
@@ -259,14 +256,19 @@ export async function GET(
           [phase.id]
         );
 
-        const [notes] = await connection.query<NoteDetails[]>(
+        const [notes] = await connection.query<RowDataPacket[]>(
           `SELECT 
             n.note_details,
             n.created_at,
-          JSON_OBJECT(
-            'user_first_name', u.user_first_name,
-            'user_last_name', u.user_last_name
-          ) as created_by
+            JSON_OBJECT(
+              'user', JSON_OBJECT(
+                'user_id', u.user_id,
+                'first_name', u.user_first_name,
+                'last_name', u.user_last_name,
+                'user_email', u.user_email,
+                'user_phone', u.user_phone
+              )
+            ) as created_by
           FROM note n
           JOIN app_user u ON n.created_by = u.user_id
           WHERE n.phase_id = ?`,
@@ -283,11 +285,18 @@ export async function GET(
           users: material.users[0]?.user_id ? material.users : []
         }));
 
+        const transformedNotes = notes.map(note => ({
+          ...note,
+          created_by: typeof note.created_by === 'string'
+            ? JSON.parse(note.created_by)
+            : note.created_by,
+        }));        
+
         return {
           ...phase,
           tasks: transformedTasks,
           materials: transformedMaterials,
-          notes: notes
+          notes: transformedNotes
         };
       }));
 
@@ -321,7 +330,7 @@ export async function POST(
     try {
       // Hardcode Michael Elrod's user ID for now
       // You'll want to replace this with actual user authentication later
-      const TEMP_USER_ID = 20; // Assuming Michael Elrod's user_id is 1
+      const TEMP_USER_ID = 64; // Assuming Michael Elrod's user_id is 1
 
       // Check if the phase_id exists and is valid
       const [phaseCheck] = await connection.query<RowDataPacket[]>(
@@ -355,10 +364,15 @@ export async function POST(
         `SELECT 
           n.note_details,
           n.created_at,
-JSON_OBJECT(
-  'user_first_name', u.user_first_name,
-  'user_last_name', u.user_last_name
-) as created_by
+          JSON_OBJECT(
+            'user', JSON_OBJECT(
+              'first_name', u.user_first_name,
+              'last_name', u.user_last_name,
+              'user_id', u.user_id,
+              'user_email', u.user_email,
+              'user_phone', u.user_phone
+            )
+          ) as created_by
         FROM note n
         JOIN app_user u ON n.created_by = u.user_id
         WHERE n.note_id = ?`,

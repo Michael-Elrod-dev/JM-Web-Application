@@ -157,13 +157,9 @@ export interface NewJob {
   startDate: string;
   location?: string;
   description?: string;
-  client: {
-    user_id?: number;
-    user_first_name?: string;
-    user_last_name?: string;
-    user_email?: string;
-    user_phone?: string | null;
-  };
+  client?: {
+    user_id: number;
+  } | null;
   phases?: Array<{
     title: string;
     startDate: string;
@@ -187,11 +183,26 @@ export interface NewJob {
   }>;
 }
 
+export interface TaskUpdatePayload {
+  task_title?: string;
+  task_description?: string;
+  extension_days?: number;
+  new_users?: number[];
+}
+
+export interface MaterialUpdatePayload {
+  material_title?: string;
+  material_description?: string;
+  extension_days?: number;
+  new_users?: number[];
+}
+
 export interface FormTask {
   id: string;
   title: string;
   startDate: string;
   duration: string;
+  offset: number;
   details?: string;
   selectedContacts?: Array<{ id: string }>;
   isExpanded?: boolean;
@@ -201,6 +212,7 @@ export interface FormMaterial {
   id: string;
   title: string;
   dueDate: string;
+  offset: number;
   details?: string;
   selectedContacts?: Array<{ id: string }>;
   isExpanded?: boolean;
