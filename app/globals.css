@@ -60,3 +60,7 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
 .no-hover-highlight option:hover {
   background-color: inherit !important;
 }
+
+.fc-event {
+  cursor: pointer !important;
+}

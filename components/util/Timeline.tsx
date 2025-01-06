@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TimelineProps } from "../app/types/props";
+import { TimelineProps } from "../../app/types/props";
 
 const Timeline: React.FC<TimelineProps> = ({
   phases,
@@ -101,9 +101,11 @@ const Timeline: React.FC<TimelineProps> = ({
             backgroundColor: phase.color,
           }}
         >
-          <span className="text-xs font-semibold text-white pl-2 whitespace-nowrap overflow-hidden">
-            {phase.name}
-          </span>
+          <div className="w-full h-full px-2 flex items-center">
+            <span className="text-xs font-semibold text-white truncate">
+              {phase.name}
+            </span>
+          </div>
         </div>
       ))}
 

@@ -232,6 +232,8 @@ export interface FormPhase {
   tasks: FormTask[];
   materials: FormMaterial[];
   notes: FormNote[];
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 export interface JobUpdatePayload {

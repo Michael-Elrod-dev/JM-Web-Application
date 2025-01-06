@@ -1,7 +1,7 @@
 // handlers/new/tasks.ts
 import { FormTask } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
-import { calculateEndDate } from "../utils";
+import { calculateEndDate } from '@/app/utils';
 
 export const handleStartDateChange = (
     newStartDate: string,
@@ -88,7 +88,6 @@ export const handleStartDateChange = (
     const newErrors: { [key: string]: string } = {};
     if (!localTask.title.trim()) newErrors.title = "Title is required";
     if (!localTask.startDate) newErrors.startDate = "Start date is required";
-    if (!localTask.duration) newErrors.duration = "Duration is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -96,9 +95,9 @@ export const handleStartDateChange = (
   export const handleDone = (
     localTask: FormTask,
     selectedContacts: UserView[],
-    onUpdate: (task: FormTask) => void,
     setLocalTask: React.Dispatch<React.SetStateAction<FormTask>>,
-    setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>
+    setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>,
+    onUpdate: (task: FormTask) => void
   ) => {
     if (validateTask(localTask, setErrors)) {
       const updatedTask = {

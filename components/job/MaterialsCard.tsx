@@ -1,66 +1,64 @@
 // components/MaterialsCard.tsx
 import React, { useState, useEffect, useRef } from "react";
-import SmallCardFrame from "./SmallCardFrame";
+import SmallCardFrame from "../util/SmallCardFrame";
 import StatusButton from "./StatusButton";
+import { formatPhoneNumber } from "../../app/utils";
 import { MaterialView, UserView } from "@/app/types/views";
 import { MaterialUpdatePayload } from "@/app/types/database";
 
 interface MaterialsCardProps {
   materials: MaterialView[];
+  contacts: UserView[];
+  onStatusUpdate: (
+    id: number,
+    type: "task" | "material",
+    newStatus: string
+  ) => void;
+  onDelete: (id: number) => Promise<void>;
 }
 
-const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
-  const [expandedMaterialId, setExpandedMaterialId] = useState<number | null>(null);
+const MaterialsCard: React.FC<MaterialsCardProps> = ({
+  materials,
+  contacts,
+  onStatusUpdate,
+  onDelete,
+}) => {
+  const [expandedMaterialId, setExpandedMaterialId] = useState<number | null>(
+    null
+  );
   const [localMaterials, setLocalMaterials] = useState(materials);
   const [activeModal, setActiveModal] = useState<number | null>(null);
-  const [allUsers, setAllUsers] = useState<UserView[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const sortedMaterials = [...materials].sort((a, b) => 
+    new Date(a.material_duedate).getTime() - new Date(b.material_duedate).getTime()
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch("/api/users");
-        if (!response.ok) throw new Error("Failed to fetch users");
-        const data = await response.json();
-
-        const transformedUsers: UserView[] = data.map((user: any) => ({
-          user_id: user.user_id,
-          first_name: user.user_first_name,
-          last_name: user.user_last_name,
-          user_email: user.user_email,
-          user_phone: user.user_phone || "",
-        }));
-
-        setAllUsers(transformedUsers);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
-    };
-
-    fetchUsers();
   }, []);
 
   useEffect(() => {
     if (activeModal !== null) {
-      const material = localMaterials.find(m => m.material_id === activeModal);
+      const material = localMaterials.find(
+        (m) => m.material_id === activeModal
+      );
       if (material) {
-        setSelectedUsers(new Set(material.users.map(u => u.user_id)));
+        setSelectedUsers(new Set(material.users.map((u) => u.user_id)));
       }
     } else {
       setSelectedUsers(new Set());
@@ -68,7 +66,7 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
   }, [activeModal, localMaterials]);
 
   const handleUserSelection = (userId: number) => {
-    setSelectedUsers(prev => {
+    setSelectedUsers((prev) => {
       const newSelection = new Set(prev);
       if (newSelection.has(userId)) {
         newSelection.delete(userId);
@@ -82,14 +80,19 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
   const handleStatusChange = (materialId: number, newStatus: string) => {
     setLocalMaterials((prevMaterials) =>
       prevMaterials.map((material) =>
-        material.material_id === materialId ? { ...material, material_status: newStatus } : material
+        material.material_id === materialId
+          ? { ...material, material_status: newStatus }
+          : material
       )
     );
+    onStatusUpdate(materialId, "material", newStatus);
   };
 
   const handleCardClick = (e: React.MouseEvent, materialId: number) => {
     if (!(e.target as HTMLElement).closest(".status-button")) {
-      setExpandedMaterialId(expandedMaterialId === materialId ? null : materialId);
+      setExpandedMaterialId(
+        expandedMaterialId === materialId ? null : materialId
+      );
     }
   };
 
@@ -97,11 +100,11 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
     const arrayA = Array.from(a);
     const arrayB = Array.from(b);
     if (arrayA.length !== arrayB.length) return false;
-    return arrayA.every(item => arrayB.includes(item));
+    return arrayA.every((item) => arrayB.includes(item));
   };
 
   const handleSaveChanges = async (materialId: number) => {
-    const material = localMaterials.find(m => m.material_id === materialId);
+    const material = localMaterials.find((m) => m.material_id === materialId);
     if (!material) return;
 
     const changes: MaterialUpdatePayload = {};
@@ -122,7 +125,10 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
       hasChanges = true;
     }
 
-    if (descriptionInput && descriptionInput.value !== material.material_description) {
+    if (
+      descriptionInput &&
+      descriptionInput.value !== material.material_description
+    ) {
       changes.material_description = descriptionInput.value;
       hasChanges = true;
     }
@@ -131,9 +137,9 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
     if (!isNaN(extensionDays)) {
       changes.extension_days = extensionDays;
       hasChanges = true;
-    }      
+    }
 
-    const currentUserIds = new Set(material.users.map(u => u.user_id));
+    const currentUserIds = new Set(material.users.map((u) => u.user_id));
     if (!setsAreEqual(currentUserIds, selectedUsers)) {
       changes.new_users = Array.from(selectedUsers);
       hasChanges = true;
@@ -142,13 +148,16 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
     if (hasChanges) {
       try {
         const jobId = window.location.pathname.split("/")[2];
-        const response = await fetch(`/api/jobs/${jobId}/materials/${materialId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(changes),
-        });
+        const response = await fetch(
+          `/api/jobs/${jobId}/materials/${materialId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(changes),
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to update material");
@@ -168,7 +177,7 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
     <div className="space-y-2">
       <h4 className="text-md font-semibold mb-2">Materials</h4>
       <div className="space-y-2">
-        {localMaterials.map((material) => (
+        {sortedMaterials.map((material) => (
           <div key={material.material_id}>
             <SmallCardFrame>
               <div
@@ -180,10 +189,13 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                     {material.material_title}
                   </span>
                   <span className="text-sm text-center col-span-1">
-                    {new Date(material.material_duedate).toLocaleDateString("en-US", {
-                      month: "numeric",
-                      day: "numeric",
-                    })}
+                    {new Date(material.material_duedate).toLocaleDateString(
+                      "en-US",
+                      {
+                        month: "numeric",
+                        day: "numeric",
+                      }
+                    )}
                   </span>
                   <div className="flex justify-end col-span-1">
                     <div className="status-button">
@@ -203,33 +215,39 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                   <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-600">
                     {material.material_description && (
                       <div className="mb-4">
-                        <h5 className="text-sm font-medium mb-2">Description:</h5>
+                        <h5 className="text-sm font-medium mb-2">
+                          Description:
+                        </h5>
                         <SmallCardFrame>
-                          <p className="text-sm">{material.material_description}</p>
+                          <p className="text-sm">
+                            {material.material_description}
+                          </p>
                         </SmallCardFrame>
                       </div>
                     )}
 
-                    {material.users && material.users.length > 0 && (
-                      <div className="space-y-2">
-                        <h5 className="text-sm font-medium mb-2">Assigned People:</h5>
-                        {material.users.map((user) => (
-                          <SmallCardFrame key={user.user_id}>
-                            <div className="grid grid-cols-3 items-center">
-                              <span className="text-sm">
-                                {`${user.first_name} ${user.last_name}`}
-                              </span>
-                              <span className="text-sm text-center">
-                                {user.user_phone}
-                              </span>
-                              <span className="text-sm text-right">
-                                {user.user_email}
-                              </span>
-                            </div>
-                          </SmallCardFrame>
-                        ))}
-                      </div>
-                    )}
+{material.users && material.users.length > 0 && (
+  <div className="space-y-2">
+    <h5 className="text-sm font-medium mb-2">
+      Assigned People:
+    </h5>
+    {material.users.map((user) => (
+      <SmallCardFrame key={user.user_id}>
+        <div className="grid grid-cols-3 items-center">
+          <span className="text-sm">
+            {`${user.first_name} ${user.last_name}`}
+          </span>
+          <span className="text-sm text-center">
+            {formatPhoneNumber(user.user_phone)}
+          </span>
+          <span className="text-sm text-right">
+            {user.user_email}
+          </span>
+        </div>
+      </SmallCardFrame>
+    ))}
+  </div>
+)}
 
                     <div className="mt-4 flex justify-end">
                       <button
@@ -332,15 +350,22 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                           />
                           {isDropdownOpen && (
                             <div className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                              {allUsers
-                                .filter(user => 
-                                  !selectedUsers.has(user.user_id) && 
-                                  (`${user.first_name} ${user.last_name}`
-                                    .toLowerCase()
-                                    .includes(userSearchQuery.toLowerCase()) ||
-                                  user.user_email.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                              {contacts
+                                .filter(
+                                  (user) =>
+                                    !selectedUsers.has(user.user_id) &&
+                                    (`${user.first_name} ${user.last_name}`
+                                      .toLowerCase()
+                                      .includes(
+                                        userSearchQuery.toLowerCase()
+                                      ) ||
+                                      user.user_email
+                                        .toLowerCase()
+                                        .includes(
+                                          userSearchQuery.toLowerCase()
+                                        ))
                                 )
-                                .map(user => (
+                                .map((user) => (
                                   <div
                                     key={user.user_id}
                                     className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer"
@@ -356,12 +381,14 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                           )}
 
                           <div className="flex flex-wrap gap-2 mt-4">
-                            {Array.from(selectedUsers).map(userId => {
-                              const user = allUsers.find(u => u.user_id === userId);
+                            {Array.from(selectedUsers).map((userId) => {
+                              const user = contacts.find(
+                                (u) => u.user_id === userId
+                              );
                               if (!user) return null;
-                              
+
                               return (
-                                <div 
+                                <div
                                   key={userId}
                                   className="flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
                                 >
@@ -370,17 +397,17 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                                     onClick={() => handleUserSelection(userId)}
                                     className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
                                   >
-                                    <svg 
-                                      className="w-4 h-4" 
-                                      fill="none" 
-                                      stroke="currentColor" 
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
                                       viewBox="0 0 24 24"
                                     >
-                                      <path 
-                                        strokeLinecap="round" 
-                                        strokeLinejoin="round" 
-                                        strokeWidth={2} 
-                                        d="M6 18L18 6M6 6l12 12" 
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
                                       />
                                     </svg>
                                   </button>
@@ -399,7 +426,22 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({ materials }) => {
                           Cancel
                         </button>
                         <button
-                          onClick={() => handleSaveChanges(material.material_id)}
+                          onClick={async () => {
+                            try {
+                              await onDelete(material.material_id);
+                              setActiveModal(null);
+                            } catch (error) {
+                              console.error("Error deleting material:", error);
+                            }
+                          }}
+                          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleSaveChanges(material.material_id)
+                          }
                           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                         >
                           Save Changes

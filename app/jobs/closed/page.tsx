@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import LargeJobFrame from "../../../components/LargeJobFrame";
+import LargeJobFrame from "../../../components/job/LargeJobFrame";
 import { useSearchParams } from "next/navigation";
 import { JobDetailView } from "../../types/views";
 
@@ -17,37 +17,48 @@ export default function ClosedJobsPage() {
       try {
         const response = await fetch("/api/jobs?view=detailed&status=closed");
         const data = await response.json();
-
-        // Transform the data to match JobDetailView
-        const transformedJobs = data.jobs.map(
-          (job: any): JobDetailView => ({
-            id: job.job_id,
-            jobName: job.job_title,
-            job_startdate: job.job_startdate,
-            dateRange: job.date_range,
-            currentWeek: job.current_week,
-            phases: job.phases.map((phase: any) => ({
-              id: phase.id,
-              name: phase.name,
-              startDate: phase.startDate,
-              endDate: phase.endDate,
-              color: phase.color,
-              tasks: [],
-              materials: [],
-              notes: [],
-            })),
-            overdue: job.overdue,
-            nextSevenDays: job.nextSevenDays,
-            sevenDaysPlus: job.sevenDaysPlus,
-            tasks: job.tasks.map((task: string) => ({ task_title: task })),
-            materials: job.materials.map((material: string) => ({
-              material_title: material,
-            })),
-            workers: job.workers || [],
-          })
-        );
+            
+        const transformedJobs = data.jobs.map((job: any): JobDetailView => ({
+          id: job.job_id,
+          jobName: job.job_title,
+          job_startdate: job.job_startdate,
+          dateRange: job.date_range,
+          currentWeek: job.current_week,
+          phases: job.phases.map((phase: any) => ({
+            id: phase.id,
+            name: phase.name,
+            startDate: phase.startDate,
+            endDate: phase.endDate,
+            color: phase.color,
+            tasks: [],
+            materials: [],
+            notes: [],
+          })),
+          overdue: job.overdue,
+          nextSevenDays: job.nextSevenDays,
+          sevenDaysPlus: job.sevenDaysPlus,
+          tasks: job.tasks.map((task: any) => ({
+            task_id: Math.random(),
+            task_title: task.task_title,
+            task_startdate: '',
+            task_duration: 0,
+            task_status: task.task_status,
+            task_description: '',
+            users: []
+          })),
+          materials: job.materials.map((material: any) => ({
+            material_id: Math.random(),
+            material_title: material.material_title,
+            material_duedate: '',
+            material_status: material.material_status,
+            material_description: '',
+            users: []
+          })),
+          contacts: job.contacts || [],
+        }));
 
         setJobs(transformedJobs);
+        
       } catch (error) {
         console.error("Failed to fetch jobs:", error);
       }
@@ -90,7 +101,7 @@ export default function ClosedJobsPage() {
           nextSevenDays={job.nextSevenDays}
           tasks={job.tasks}
           materials={job.materials}
-          workers={job.workers}
+          contacts={job.contacts}
         />
       ))}
     </>

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Timeline from "./Timeline";
+import Timeline from "../util/Timeline";
 import Image from "next/image";
-import { JobDetailView, TaskView, MaterialView } from "../app/types/views";
+import { JobDetailView, TaskView, MaterialView } from "../../app/types/views";
 
 const LargeJobFrame: React.FC<JobDetailView> = (props) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,7 +29,6 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
     label: string,
     items: TaskView[] | MaterialView[] | string[]
   ) => {
-    // Convert label for dropdown placeholder
     const displayLabel =
       label === "Tasks"
         ? "Tasks"
@@ -47,7 +46,7 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
             style={{ maxHeight: "240px" }}
           >
             <option value="" disabled>
-              {displayLabel} {/* Placeholder text inside the dropdown */}
+              {displayLabel}
             </option>
             {label === "Contacts"
               ? (items as string[]).map((name, index) => (
@@ -103,8 +102,27 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
     );
   };
 
-  const startDate = props.job_startdate;
-  const endDate = props.phases[props.phases.length - 1]?.endDate;
+  // Ensure dates are in YYYY-MM-DD format
+  const ensureYYYYMMDDFormat = (dateStr: string) => {
+    if (dateStr.includes("-")) return dateStr; // Already in YYYY-MM-DD format
+
+    const [month, day] = dateStr.split("/");
+    const currentYear = new Date().getFullYear();
+    return `${currentYear}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  };
+
+  // Convert dates to YYYY-MM-DD format
+  const firstPhase = props.phases[0];
+  const lastPhase = props.phases[props.phases.length - 1];
+
+  // Use the first phase's start date instead of job_startdate
+  const standardizedStartDate = firstPhase
+    ? ensureYYYYMMDDFormat(firstPhase.startDate)
+    : ensureYYYYMMDDFormat(props.job_startdate);
+  const standardizedEndDate = lastPhase
+    ? ensureYYYYMMDDFormat(lastPhase.endDate)
+    : standardizedStartDate;
+
   const total = props.overdue + props.nextSevenDays + props.sevenDaysPlus;
 
   return (
@@ -128,8 +146,7 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
         <div className="w-2/3 pr-4 flex flex-col pt-8">
           {renderDropdown("Tasks", props.tasks)}
           {renderDropdown("Materials", props.materials)}
-          {props.workers.length > 0 &&
-            renderDropdown("Contacts", props.workers)}
+          {renderDropdown("Contacts", props.contacts)}
         </div>
         <div
           className="w-1/3 h-full relative cursor-pointer"
@@ -202,8 +219,8 @@ const LargeJobFrame: React.FC<JobDetailView> = (props) => {
         >
           <Timeline
             phases={props.phases}
-            startDate={startDate}
-            endDate={endDate}
+            startDate={standardizedStartDate}
+            endDate={standardizedEndDate}
             currentWeek={props.currentWeek}
           />
         </div>

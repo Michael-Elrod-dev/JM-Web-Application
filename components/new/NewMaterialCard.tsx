@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import ContactCard from "../ContactCard";
+import ContactCard from "../util/ContactCard";
 import { FormMaterial } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
 import { MaterialCardProps } from "../../app/types/props"
-import { formatDate } from "../../handlers/utils";
+import { formatDate } from '@/app/utils';
 import {
   handleDeleteClick,
   handleConfirmDelete,
@@ -14,7 +14,6 @@ import {
   handleContactSelect,
   handleContactRemove,
   handleDone,
-  validateMaterial,
 } from "../../handlers/new/materials";
 
 const NewMaterialCard: React.FC<MaterialCardProps> = ({
@@ -38,7 +37,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localMaterial, setLocalMaterial] = useState<FormMaterial>({
     ...material,
-    isExpanded: false
+    isExpanded: material.isExpanded
   });
 
   useEffect(() => {
@@ -51,7 +50,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
   }, [material.id, material.dueDate, phaseStartDate]);
 
   return (
-    <div className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+    <div id={`material-${material.id}`} className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
       {localMaterial.isExpanded ? (
         <div>
           <div className="grid grid-cols-2 gap-4 mb-2">
@@ -90,7 +89,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                 value={localMaterial.dueDate}
                 onChange={(e) =>
                   handleInputChange(
-                    "title",
+                    "dueDate",
                     e.target.value,
                     phaseStartDate,
                     setLocalMaterial,
@@ -117,7 +116,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
               value={localMaterial.details}
               onChange={(e) =>
                 handleInputChange(
-                  "title",
+                  "details",
                   e.target.value,
                   phaseStartDate,
                   setLocalMaterial,
@@ -249,7 +248,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                 Cancel
               </button>
               <button
-                onClick={() => handleDeleteClick(setShowDeleteConfirm)}
+                onClick={() => handleConfirmDelete(onDelete, setShowDeleteConfirm)}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete

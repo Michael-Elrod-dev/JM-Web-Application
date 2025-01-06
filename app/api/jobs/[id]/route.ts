@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import pool from '@/app/lib/db';
 import { RowDataPacket } from 'mysql2';
 import { JobUpdatePayload } from '@/app/types/database'
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // Interfaces
 interface JobDetails extends RowDataPacket {
@@ -324,14 +326,19 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Session not found or user not authenticated' },
+        { status: 401 }
+      );
+    }
+
     const connection = await pool.getConnection();
     const body = await request.json();
 
     try {
-      // Hardcode Michael Elrod's user ID for now
-      // You'll want to replace this with actual user authentication later
-      const TEMP_USER_ID = 64; // Assuming Michael Elrod's user_id is 1
-
+      const userId = parseInt(session.user.id);
       // Check if the phase_id exists and is valid
       const [phaseCheck] = await connection.query<RowDataPacket[]>(
         'SELECT phase_id FROM phase WHERE phase_id = ? AND job_id = ?',
@@ -355,7 +362,7 @@ export async function POST(
         [
           body.phase_id,
           body.note_details,
-          TEMP_USER_ID
+          userId
         ]
       );
 
@@ -478,14 +485,6 @@ export async function PATCH(
           [body.job_startdate, jobId]
         );
 
-        // Update phase dates using DATE()
-        await connection.query(
-          `UPDATE phase 
-           SET phase_startdate = DATE(DATE_ADD(phase_startdate, INTERVAL ? DAY))
-           WHERE job_id = ?`,
-          [daysDifference, jobId]
-        );
-
         // Update task dates using DATE()
         await connection.query(
           `UPDATE task t
@@ -503,6 +502,26 @@ export async function PATCH(
            WHERE p.job_id = ?`,
           [daysDifference, jobId]
         );
+
+        // Update phase dates based on earliest task or material date
+        await connection.query(`
+          UPDATE phase p
+          SET p.phase_startdate = (
+            SELECT MIN(earliest_date) 
+            FROM (
+              SELECT MIN(t.task_startdate) as earliest_date
+              FROM task t
+              WHERE t.phase_id = p.phase_id
+              
+              UNION ALL
+              
+              SELECT MIN(m.material_duedate)
+              FROM material m
+              WHERE m.phase_id = p.phase_id
+            ) dates
+          )
+          WHERE p.job_id = ?
+        `, [jobId]);
       }
     }
 
@@ -527,6 +546,26 @@ export async function PATCH(
          WHERE p.job_id = ?`,
         [extensionDays, jobId]
       );
+
+      // Update phase dates based on earliest task or material date
+      await connection.query(`
+        UPDATE phase p
+        SET p.phase_startdate = (
+          SELECT MIN(earliest_date) 
+          FROM (
+            SELECT MIN(t.task_startdate) as earliest_date
+            FROM task t
+            WHERE t.phase_id = p.phase_id
+            
+            UNION ALL
+            
+            SELECT MIN(m.material_duedate)
+            FROM material m
+            WHERE m.phase_id = p.phase_id
+          ) dates
+        )
+        WHERE p.job_id = ?
+      `, [jobId]);
     }
 
     await connection.commit();

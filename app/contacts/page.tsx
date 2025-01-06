@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import ContactCard from "@/components/ContactCard";
+import ContactCard from "@/components/util/ContactCard";
 import { User } from "@/app/types/database";
-import { fetchUsers } from "@/app/utils/api";
+import { fetchUsers } from "@/app/api_utils/api";
 
 type FilterType = "all" | "workers" | "clients";
 

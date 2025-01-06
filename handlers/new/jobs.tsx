@@ -43,18 +43,71 @@ export const handleCreateJob = async (
     }
 
     const tempId = Date.now().toString();
-    const currentDate = new Date().toISOString().split('T')[0];
+    
+    // New getCurrentBusinessDate function
+    const getCurrentBusinessDate = (currentDate: Date): Date => {
+      // Create a new date using local time components to avoid timezone issues
+      const localDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        12  // Set to noon to avoid any timezone edge cases
+      );
+      
+      const day = localDate.getDay();
+      
+      if (day === 0) { // Sunday
+        localDate.setDate(localDate.getDate() + 1);
+      } else if (day === 6) { // Saturday
+        localDate.setDate(localDate.getDate() + 2);
+      }
+      
+      return localDate;
+    };
+
+    const currentDate = new Date();
+    const currentBusinessDate = getCurrentBusinessDate(currentDate).toISOString().split('T')[0];
+
+    // Modified addBusinessDays function
+    const addBusinessDays = (date: Date, days: number): Date => {
+      const result = new Date(date);
+      const day = result.getDay();
+
+      // First ensure the start date is a business day
+      if (day === 0) { // Sunday
+        result.setDate(result.getDate() + 1);
+      } else if (day === 6) { // Saturday
+        result.setDate(result.getDate() + 2);
+      }
+
+      // If no additional days needed, return the business day-adjusted date
+      if (days === 0) {
+        return result;
+      }
+
+      // For additional days, add business days
+      let remaining = Math.abs(days);
+      const direction = days < 0 ? -1 : 1;
+      
+      while (remaining > 0) {
+        result.setDate(result.getDate() + direction);
+        if (result.getDay() !== 0 && result.getDay() !== 6) {
+          remaining--;
+        }
+      }
+      
+      return result;
+    };
 
     const processedPhases: FormPhase[] = phases.map((phase: FormPhase, phaseIndex: number) => {
-      // Special handling for preplanning phase
       const isPreplanningPhase = phaseIndex === 0;
-      const baseDate = isPreplanningPhase ? currentDate : startDate;
 
-      // Calculate all task and material dates first
       const tasks = phase.tasks.map((task: FormTask, taskIndex: number) => {
-        const taskStartDate = new Date(baseDate);
-        taskStartDate.setDate(taskStartDate.getDate() + (task.offset || 0));
+        let baseDate = isPreplanningPhase 
+          ? task.offset === 0 ? getCurrentBusinessDate(new Date(currentBusinessDate)) : new Date(startDate)
+          : new Date(startDate);
 
+        const taskStartDate = addBusinessDays(baseDate, task.offset || 0);
         return {
           ...task,
           id: `task-${tempId}-${phaseIndex}-${taskIndex}`,
@@ -65,9 +118,11 @@ export const handleCreateJob = async (
       });
 
       const materials = phase.materials.map((material: FormMaterial, materialIndex: number) => {
-        const materialDueDate = new Date(baseDate);
-        materialDueDate.setDate(materialDueDate.getDate() + (material.offset || 0));
-
+        let baseDate = isPreplanningPhase
+          ? material.offset === 0 ? getCurrentBusinessDate(new Date(currentBusinessDate)) : new Date(startDate)
+          : new Date(startDate);
+          
+        const materialDueDate = addBusinessDays(baseDate, material.offset || 0);
         return {
           ...material,
           id: `material-${tempId}-${phaseIndex}-${materialIndex}`,
@@ -77,17 +132,10 @@ export const handleCreateJob = async (
         };
       });
 
-      // Find earliest date among tasks and materials
-      const allDates = [
-        ...tasks.map(task => task.startDate),
-        ...materials.map(material => material.dueDate)
-      ];
-
+      const allDates = [...tasks.map(task => task.startDate), ...materials.map(material => material.dueDate)];
       const phaseStartDate = allDates.length > 0 
-        ? allDates.reduce((earliest, current) => 
-            current < earliest ? current : earliest
-          )
-        : baseDate;
+        ? allDates.reduce((earliest, current) => current < earliest ? current : earliest)
+        : isPreplanningPhase ? currentBusinessDate : startDate;
 
       return {
         ...phase,
@@ -95,7 +143,7 @@ export const handleCreateJob = async (
         startDate: phaseStartDate,
         tasks,
         materials,
-        notes: [] as FormNote[]
+        notes: []
       };
     });
 

@@ -1,12 +1,12 @@
-// components/TaskCard.tsx
+// components/new/TaskCard.tsx
 
 import React, { useState, useEffect } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import ContactCard from "../ContactCard";
+import ContactCard from "../util/ContactCard";
 import { FormTask } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
-import { TaskCardProps } from "../../app/types/props"
-import { formatDate } from "../../handlers/utils";
+import { TaskCardProps } from "../../app/types/props";
+import { formatDate } from '@/app/utils';
 import {
   handleStartDateChange,
   handleInputChange,
@@ -16,9 +16,7 @@ import {
   handleDeleteClick,
   handleConfirmDelete,
   handleDone,
-  validateTask,
 } from "../../handlers/new/tasks";
-
 
 const NewTaskCard: React.FC<TaskCardProps> = ({
   task,
@@ -31,14 +29,19 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localTask, setLocalTask] = useState<FormTask>({
     ...task,
-    isExpanded: false
+    isExpanded: task.isExpanded,
   });
   const [selectedContacts, setSelectedContacts] = useState<UserView[]>(
     task.selectedContacts
-      ?.map((id) => contacts.find((c) => c.user_id === parseInt(id.toString())) as UserView)
+      ?.map(
+        (id) =>
+          contacts.find(
+            (c) => c.user_id === parseInt(id.toString())
+          ) as UserView
+      )
       .filter(Boolean) || []
   );
-  
+
   useEffect(() => {
     if (task.id === "" && !task.startDate) {
       setLocalTask((prev) => ({
@@ -49,7 +52,10 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
   }, [task.id, task.startDate, phaseStartDate]);
 
   return (
-    <div className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+    <div
+      id={`task-${task.id}`}
+      className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800"
+    >
       {localTask.isExpanded ? (
         <div>
           <div className="mb-2">
@@ -59,7 +65,14 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
             <input
               type="text"
               value={localTask.title}
-              onChange={(e) => handleInputChange("title", e.target.value, setLocalTask, setErrors)}
+              onChange={(e) =>
+                handleInputChange(
+                  "title",
+                  e.target.value,
+                  setLocalTask,
+                  setErrors
+                )
+              }
               className={`w-full p-2 border ${
                 errors.title
                   ? "border-red-500"
@@ -78,7 +91,14 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
               <input
                 type="date"
                 value={localTask.startDate}
-                onChange={(e) => handleStartDateChange(e.target.value, phaseStartDate, setLocalTask, setErrors)}
+                onChange={(e) =>
+                  handleStartDateChange(
+                    e.target.value,
+                    phaseStartDate,
+                    setLocalTask,
+                    setErrors
+                  )
+                }
                 min={phaseStartDate}
                 className={`w-full p-2 border ${
                   errors.startDate
@@ -97,7 +117,9 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
               <input
                 type="number"
                 value={localTask.duration}
-                onChange={(e) => handleDurationChange(e.target.value, localTask, setLocalTask)}
+                onChange={(e) =>
+                  handleDurationChange(e.target.value, localTask, setLocalTask)
+                }
                 min="1"
                 className={`w-full p-2 border ${
                   errors.duration
@@ -116,7 +138,14 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
             </label>
             <textarea
               value={localTask.details}
-              onChange={(e) => handleInputChange("title", e.target.value, setLocalTask, setErrors)}
+              onChange={(e) =>
+                handleInputChange(
+                  "title",
+                  e.target.value,
+                  setLocalTask,
+                  setErrors
+                )
+              }
               className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
               rows={3}
             />
@@ -131,7 +160,11 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
                   (contact) => contact.user_id === parseInt(e.target.value)
                 );
                 if (selectedContact) {
-                  handleContactSelect(selectedContact, selectedContacts, setSelectedContacts);
+                  handleContactSelect(
+                    selectedContact,
+                    selectedContacts,
+                    setSelectedContacts
+                  );
                   e.target.value = "";
                 }
               }}
@@ -156,7 +189,13 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
                     showCheckbox={false}
                   />
                   <button
-                    onClick={() => handleContactRemove(contact.user_id.toString(), selectedContacts, setSelectedContacts)}
+                    onClick={() =>
+                      handleContactRemove(
+                        contact.user_id.toString(),
+                        selectedContacts,
+                        setSelectedContacts
+                      )
+                    }
                     className="absolute top-2 right-2 text-zinc-400 hover:text-red-600"
                   >
                     <FaTrash size={16} />
@@ -167,7 +206,15 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
           </div>
           <div className="mt-4 flex justify-end">
             <button
-              onClick={() => handleDone(localTask, selectedContacts, onUpdate, setLocalTask, setErrors)}
+              onClick={() =>
+                handleDone(
+                  localTask,
+                  selectedContacts,
+                  setLocalTask,
+                  setErrors,
+                  onUpdate
+                )
+              }
               className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
               Done
@@ -224,7 +271,9 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
                 Cancel
               </button>
               <button
-                onClick={() => handleConfirmDelete(onDelete, setShowDeleteConfirm)}
+                onClick={() =>
+                  handleConfirmDelete(onDelete, setShowDeleteConfirm)
+                }
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete

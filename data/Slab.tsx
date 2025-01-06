@@ -310,6 +310,16 @@ const FOUNDATION_PHASE: FormPhase = {
   tasks: [
     { 
       id: "", 
+      title: "Termite company contacted", 
+      startDate: "", 
+      duration: "1",
+      offset: 7,
+      details: "Contact termite company to spray lot",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
       title: "Fill slab", 
       startDate: "", 
       duration: "2",
@@ -922,6 +932,16 @@ const ROUGH_IN_PHASE: FormPhase = {
     },
     { 
       id: "", 
+      title: "Underground Utilities ran (if needed)", 
+      startDate: "", 
+      duration: "1",
+      offset: 43,
+      details: "Run underground utilities",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
       title: "Install Exterior Electric/Meter", 
       startDate: "", 
       duration: "3",
@@ -987,6 +1007,16 @@ const ROUGH_IN_PHASE: FormPhase = {
       duration: "2",
       offset: 56,
       details: "Install all appliances",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Deck/patio installation", 
+      startDate: "", 
+      duration: "2",
+      offset: 51,
+      details: "Install deck and patio",
       isExpanded: false,
       selectedContacts: []
     },

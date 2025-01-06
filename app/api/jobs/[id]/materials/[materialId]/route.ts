@@ -3,17 +3,27 @@ import { NextResponse } from 'next/server';
 import pool from '@/app/lib/db';
 import { MaterialUpdatePayload } from '@/app/types/database';
 import { RowDataPacket } from 'mysql2';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string, materialId: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user || !session.user.id) {
+    return NextResponse.json(
+      { error: 'Unauthorized: Session not found or user not authenticated' },
+      { status: 401 }
+    );
+  }
   const connection = await pool.getConnection();
 
   try {
     const body: MaterialUpdatePayload = await request.json();
     const materialId = params.materialId;
     const jobId = params.id;
+    const userId = parseInt(session.user.id);
 
     await connection.beginTransaction();
 
@@ -93,11 +103,11 @@ export async function PATCH(
       }
 
       // Add new users
-      for (const userId of usersToAdd) {
+      for (const newUser of usersToAdd) {
         await connection.query(
           `INSERT INTO user_material (user_id, material_id, assigned_by) 
            VALUES (?, ?, ?)`,
-          [userId, materialId, 64] // TODO: Get actual assigned_by user from auth context
+          [newUser, materialId, userId]
         );
       }
     }
@@ -110,6 +120,52 @@ export async function PATCH(
     console.error('Error updating material:', error);
     return NextResponse.json(
       { error: 'Failed to update material' },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string, materialId: string } }
+) {
+  const connection = await pool.getConnection();
+
+  try {
+    const materialId = params.materialId;
+    const jobId = params.id;
+
+    await connection.beginTransaction();
+
+    // Verify material belongs to this job
+    const [materialCheck] = await connection.query<RowDataPacket[]>(
+      `SELECT m.material_id 
+       FROM material m
+       JOIN phase p ON m.phase_id = p.phase_id
+       WHERE m.material_id = ? AND p.job_id = ?`,
+      [materialId, jobId]
+    );
+
+    if (!materialCheck.length) {
+      return NextResponse.json(
+        { error: "Material not found or does not belong to this job" },
+        { status: 404 }
+      );
+    }
+
+    // Delete related entries
+    await connection.query('DELETE FROM user_material WHERE material_id = ?', [materialId]);
+    await connection.query('DELETE FROM material WHERE material_id = ?', [materialId]);
+
+    await connection.commit();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error deleting material:", error);
+    return NextResponse.json(
+      { error: "Failed to delete material" },
       { status: 500 }
     );
   } finally {

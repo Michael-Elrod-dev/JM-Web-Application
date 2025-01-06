@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import JobFrame from "../../components/JobFrame";
+import JobFrame from "../../components/job/JobFrame";
 import { useRouter } from "next/navigation";
 import { JobCardView } from "../types/views";
 

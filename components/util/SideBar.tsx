@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FaCirclePlus } from "react-icons/fa6";
 import { FaBriefcase, FaCalendar, FaAddressBook, FaCog } from "react-icons/fa";
 
 const SideBar = () => {
@@ -25,6 +26,11 @@ const SideBar = () => {
           <li>
             <Link href="/jobs" className="text-zinc-300 hover:text-white">
               <FaBriefcase size={28} />
+            </Link>
+          </li>
+          <li>
+            <Link href="/jobs/new" className="text-zinc-300 hover:text-white">
+              <FaCirclePlus size={28} />
             </Link>
           </li>
           <li>

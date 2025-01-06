@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import LargeJobFrame from "../../../components/LargeJobFrame";
+import LargeJobFrame from "../../../components/job/LargeJobFrame";
 import { useSearchParams } from "next/navigation";
 import { JobDetailView } from "../../types/views";
 
@@ -38,23 +38,23 @@ export default function ActiveJobsPage() {
           nextSevenDays: job.nextSevenDays,
           sevenDaysPlus: job.sevenDaysPlus,
           tasks: job.tasks.map((task: any) => ({
-            task_id: Math.random(),  // Still need this as we're not getting id from API
+            task_id: Math.random(),
             task_title: task.task_title,
-            task_startdate: '',      // Still need defaults for these as they're not in API
+            task_startdate: '',
             task_duration: 0,
             task_status: task.task_status,
             task_description: '',
             users: []
           })),
           materials: job.materials.map((material: any) => ({
-            material_id: Math.random(),  // Still need this as we're not getting id from API
+            material_id: Math.random(),
             material_title: material.material_title,
-            material_duedate: '',       // Still need defaults for these as they're not in API
+            material_duedate: '',
             material_status: material.material_status,
             material_description: '',
             users: []
           })),
-          workers: job.workers || [],
+          contacts: job.workers || [],
         }));
 
         setJobs(transformedJobs);
@@ -101,7 +101,7 @@ export default function ActiveJobsPage() {
           nextSevenDays={job.nextSevenDays}
           tasks={job.tasks}
           materials={job.materials}
-          workers={job.workers}
+          contacts={job.contacts}
         />
       ))}
     </>

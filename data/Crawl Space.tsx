@@ -261,6 +261,16 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
     },
     { 
       id: "", 
+      title: "Termite company contacted", 
+      startDate: "", 
+      duration: "1",
+      offset: 4,
+      details: "Contact termite company to spray lot",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
       title: "Blocks layed", 
       startDate: "", 
       duration: "3",
@@ -299,16 +309,6 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
   startDate: "",
   description: "Main foundation work and utilities",
   tasks: [
-    { 
-      id: "", 
-      title: "Termite spray", 
-      startDate: "", 
-      duration: "1",
-      offset: 31,
-      details: "Apply termite treatment",
-      isExpanded: false,
-      selectedContacts: []
-    },
     { 
       id: "", 
       title: "Rough plumbing installed", 
@@ -352,16 +352,6 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
   tasks: [
     { 
       id: "", 
-      title: "Install steps", 
-      startDate: "", 
-      duration: "2",
-      offset: 41,
-      details: "Install house steps",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
       title: "Frame house", 
       startDate: "", 
       duration: "4",
@@ -379,9 +369,28 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       details: "Paint foundation blocks",
       isExpanded: false,
       selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Termite spray", 
+      startDate: "", 
+      duration: "1",
+      offset: 31,
+      details: "Apply termite treatment",
+      isExpanded: false,
+      selectedContacts: []
     }
   ],
   materials: [
+    { 
+      id: "", 
+      title: "Deliver Tubs", 
+      dueDate: "",
+      offset: 5,
+      details: "Delivery of bathtubs and shower units",
+      isExpanded: false,
+      selectedContacts: []
+    },
     { 
       id: "", 
       title: "Deliver framing package", 
@@ -757,15 +766,6 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
   materials: [
     { 
       id: "", 
-      title: "Deliver Tubs", 
-      dueDate: "",
-      offset: 5,
-      details: "Delivery of bathtubs and shower units",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
       title: "Deliver Siding", 
       dueDate: "",
       offset: 15,
@@ -829,6 +829,16 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       duration: "5",
       offset: 32,
       details: "Paint or stain exterior surfaces",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Underground Utilities ran (if needed)", 
+      startDate: "", 
+      duration: "1",
+      offset: 33,
+      details: "Run underground utilities",
       isExpanded: false,
       selectedContacts: []
     },
@@ -929,6 +939,16 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       duration: "2",
       offset: 49,
       details: "Install concrete surfaces",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Install steps", 
+      startDate: "", 
+      duration: "2",
+      offset: 41,
+      details: "Install house steps",
       isExpanded: false,
       selectedContacts: []
     },

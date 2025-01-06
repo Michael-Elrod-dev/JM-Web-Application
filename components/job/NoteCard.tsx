@@ -1,6 +1,7 @@
 // components/NoteCard.tsx
 import React from 'react';
 import { NoteView } from '@/app/types/views';
+import { formatCardDate } from '@/app/utils';
 
 interface NoteProps extends NoteView {
   onClick: () => void;
@@ -14,13 +15,6 @@ export default function Note({
   onClick,
   isExpanded,
 }: NoteProps) {
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   return (
     <div onClick={onClick} className="cursor-pointer">
@@ -29,7 +23,7 @@ export default function Note({
           {note_details}
         </span>
         <span className="text-sm text-center col-span-1">
-          {formatDate(created_at)}
+          {formatCardDate(created_at)}
         </span>
         <span className="text-sm text-right col-span-1">
           {created_by?.user?.first_name} {created_by?.user?.last_name}

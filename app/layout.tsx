@@ -1,8 +1,8 @@
-import { Providers } from './providers';
+import { AuthProviders } from './providers/AuthProvider';
 import { Work_Sans } from "next/font/google";
 import "./globals.css";
-import SideBar from '../components/SideBar';
-import DarkModeToggle from '../components/DarkModeToggle';
+import SideBar from '../components/util/SideBar';
+import DarkModeToggle from '../components/util/DarkModeToggle';
 
 const workSans = Work_Sans({ 
   subsets: ["latin"],
@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${workSans.variable} font-sans min-h-screen bg-white dark:bg-zinc-900 text-black dark:text-white`}>
-        <Providers>
+        <AuthProviders>
           <div className="flex min-h-screen">
             <SideBar />
             <div className="flex-1 ml-12 p-8">
@@ -26,7 +26,7 @@ export default function RootLayout({
               {children}
             </div>
           </div>
-        </Providers>
+        </AuthProviders>
       </body>
     </html>
   );

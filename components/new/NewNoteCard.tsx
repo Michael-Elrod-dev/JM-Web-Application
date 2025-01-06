@@ -10,56 +10,59 @@ interface NoteCardProps {
   onDelete: () => void;
 }
 
-const NewNoteCard: React.FC<NoteCardProps> = ({ 
-  note, 
-  onUpdate, 
-  onDelete 
-}) => {
+export default function NewNoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localNote, setLocalNote] = useState<FormNote>({
     ...note,
-    isExpanded: false
+    isExpanded: note.isExpanded || false
   });
 
-  useEffect(() => {
-    setLocalNote(note);
-  }, [note]);
-
   const handleDone = () => {
-    if (localNote.content.trim()) {
-      onUpdate({ ...localNote, isExpanded: false });
-    } else {
-      onDelete();
-    }
+    const updatedNote = {
+      ...localNote,
+      isExpanded: false
+    };
+    setLocalNote(updatedNote);
+    onUpdate(updatedNote);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      handleDone();
-    }
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete();
+    setShowDeleteConfirm(false);
   };
 
   return (
-    <div className="mb-4">
+    <div id={`task-${note.id}`} className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
       {localNote.isExpanded ? (
-        <div className="border border-zinc-300 dark:border-zinc-600 rounded p-4 bg-white dark:bg-zinc-800">
-          <textarea
-            value={localNote.content}
-            onChange={(e) => setLocalNote(prev => ({ ...prev, content: e.target.value }))}
-            onKeyDown={handleKeyDown}
-            className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
-            rows={3}
-            placeholder="Enter your note..."
-            autoFocus
-          />
-          <div className="flex justify-end gap-2">
+        <div>
+          <div className="mb-2">
+            <textarea
+              value={localNote.content}
+              onChange={(e) => {
+                const updatedNote = {
+                  ...localNote,
+                  content: e.target.value
+                };
+                setLocalNote(updatedNote);
+              }}
+              className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded dark:bg-zinc-800 dark:text-white"
+              rows={3}
+              placeholder="Add your note here..."
+            />
+          </div>
+          <div className="mt-4 flex justify-end">
             <button
               onClick={handleDone}
-              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
+              className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
             >
               Done
             </button>
             <button
-              onClick={onDelete}
+              onClick={handleDeleteClick}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
@@ -67,26 +70,60 @@ const NewNoteCard: React.FC<NoteCardProps> = ({
           </div>
         </div>
       ) : (
-        <div className="border border-zinc-300 dark:border-zinc-600 rounded p-4 bg-white dark:bg-zinc-800 relative">
-          <div className="absolute top-2 right-2 flex gap-2">
+        <div className="flex justify-between items-center">
+          <div className="overflow-hidden text-ellipsis whitespace-nowrap flex-grow">
+            {localNote.content || "Empty note"}
+          </div>
+          <div className="flex">
             <button
-              onClick={() => setLocalNote(prev => ({ ...prev, isExpanded: true }))}
-              className="text-zinc-400 hover:text-blue-500 transition-colors"
+              onClick={() => {
+                const updatedNote = {
+                  ...localNote,
+                  isExpanded: true
+                };
+                setLocalNote(updatedNote);
+                onUpdate(updatedNote);
+              }}
+              className="mr-2 text-zinc-400 hover:text-blue-500 transition-colors"
             >
               <FaEdit size={18} />
             </button>
             <button
-              onClick={onDelete}
+              onClick={handleDeleteClick}
               className="text-zinc-400 hover:text-red-500 transition-colors"
             >
               <FaTrash size={18} />
             </button>
           </div>
-          <p className="whitespace-pre-wrap pr-20 text-zinc-700 dark:text-white">{localNote.content}</p>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-zinc-800 p-4 rounded-lg border border-zinc-300 dark:border-zinc-600">
+            <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-white">
+              Delete Note
+            </h3>
+            <p className="text-zinc-700 dark:text-zinc-300">
+              Are you sure you want to delete this note?
+            </p>
+            <div className="mt-4 flex justify-end space-x-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded hover:bg-zinc-300 dark:hover:bg-zinc-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
-};
-
-export default NewNoteCard;
+}

@@ -3,17 +3,27 @@ import { NextResponse } from 'next/server';
 import pool from '@/app/lib/db';
 import { TaskUpdatePayload } from '@/app/types/database';
 import { RowDataPacket } from 'mysql2';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string, taskId: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user || !session.user.id) {
+    return NextResponse.json(
+      { error: 'Unauthorized: Session not found or user not authenticated' },
+      { status: 401 }
+    );
+  }
   const connection = await pool.getConnection();
 
   try {
     const body: TaskUpdatePayload = await request.json();
     const taskId = params.taskId;
     const jobId = params.id;
+    const userId = parseInt(session.user.id);
 
     await connection.beginTransaction();
 
@@ -93,11 +103,11 @@ export async function PATCH(
       }
 
       // Add new users
-      for (const userId of usersToAdd) {
+      for (const newUser of usersToAdd) {
         await connection.query(
           `INSERT INTO user_task (user_id, task_id, assigned_by) 
            VALUES (?, ?, ?)`,
-          [userId, taskId, 64] // TODO: Get actual assigned_by user from auth context
+          [newUser, taskId, userId]
         );
       }
     }

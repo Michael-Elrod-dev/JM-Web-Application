@@ -44,6 +44,8 @@ export interface DetailPhaseCardProps {
   phaseNumber: number;
   showTasks: boolean;
   showMaterials: boolean;
+  contacts: UserView[];
+  isCollapsed: boolean;
 }
 
 export interface PhaseCardProps {
@@ -51,6 +53,8 @@ export interface PhaseCardProps {
   onDelete: () => void;
   jobStartDate: string;
   onUpdate: (updatedPhase: FormPhase) => void;
+  onAddPhaseAfter: (phaseId: string) => void;
+  onMovePhase: (direction: 'up' | 'down') => void;
   contacts: UserView[];
 }
 

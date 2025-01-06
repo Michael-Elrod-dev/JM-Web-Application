@@ -19,7 +19,7 @@ export interface JobDetailView {
   nextSevenDays: number;
   tasks: TaskView[];
   materials: MaterialView[];
-  workers: string[];
+  contacts: string[];
 }
 
 export interface PhaseView {

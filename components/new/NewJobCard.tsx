@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { User } from "../../app/types/database";
-import CardFrame from "../CardFrame";
+import CardFrame from "../util/CardFrame";
 import ClientSearchSelect from "./ClientSearch";
 import NewClientModal from "./NewClientModal";
 
 interface NewJobCardProps {
   jobType: string;
   startDate: string;
+  errors?: { [key: string]: string };
   onJobDetailsChange: (details: {
     jobTitle: string;
     jobLocation?: string;
@@ -20,6 +21,7 @@ interface NewJobCardProps {
 export default function NewJobCard({
   jobType,
   startDate,
+  errors: externalErrors,
   onJobDetailsChange,
 }: NewJobCardProps) {
   const [contacts, setContacts] = useState<User[]>([]);
@@ -29,6 +31,12 @@ export default function NewJobCard({
   const [jobLocation, setJobLocation] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    if (externalErrors) {
+      setErrors(externalErrors);
+    }
+  }, [externalErrors]);
 
   const getInputClassName = (fieldName: string, type: string = "text") => {
     const baseClass = "mt-1 block w-full border rounded-md shadow-sm p-2";
@@ -109,7 +117,7 @@ export default function NewJobCard({
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div id="job-details-section" className="space-y-4">
       <CardFrame>
         <div className="space-y-4">
           <div>
@@ -155,7 +163,7 @@ export default function NewJobCard({
                 htmlFor="jobImage"
                 className="block text-sm font-medium text-zinc-700 dark:text-white"
               >
-                Upload Floorplan
+                Floorplan
               </label>
               <div className="relative">
                 <input
