@@ -2,11 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import Timeline from "@/components/util/Timeline";
 import ContentTabs from "@/components/tabs/ContentTabs";
 import CardFrame from "@/components/util/CardFrame";
 import PhaseCard from "@/components/job/PhaseCard";
 import ContactCard from "@/components/contact/ContactCard";
+import StatusBar from "@/components/util/StatusBar";
+import CopyJobModal from "@/components/job/CopyJobModal";
+import TerminateJobModal from "@/components/job/TerminateJobModal";
+import FloorplanViewer from "@/components/job/FloorplanViewer";
 import Image from "next/image";
 import { JobUpdatePayload, FormTask, FormMaterial } from "@/app/types/database";
 import { useParams } from "next/navigation";
@@ -31,6 +37,8 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<JobDetailView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [activeModal, setActiveModal] = useState<"edit" | "floorplan" | null>(
     null
   );
@@ -724,20 +732,23 @@ export default function JobDetailPage() {
     );
   };
 
+  const defaultFloorplans = Array(5)
+  .fill({
+    url: "/placeholder-floorplan.jpg",
+    name: "Sample Floorplan",
+  })
+  .map((plan, index) => ({
+    ...plan,
+    name: `Sample Floorplan ${index + 1}`,
+  }));
+
   const renderFloorPlan = () => {
     return (
       <CardFrame>
-        <div
-          className="relative h-[400px] cursor-pointer"
-          onClick={() => setActiveModal("floorplan")}
-        >
-          <Image
-            src="/placeholder-floorplan.jpg"
-            alt="Floor Plan"
-            fill
-            className="object-contain"
-          />
-        </div>
+        <FloorplanViewer 
+          floorplans={defaultFloorplans} 
+          mode="embedded" 
+        />
       </CardFrame>
     );
   };
@@ -796,8 +807,6 @@ export default function JobDetailPage() {
     );
   };
 
-  const total = job.overdue + job.nextSevenDays + job.sevenDaysPlus;
-
   return (
     <>
       <header className="mb-8">
@@ -806,66 +815,44 @@ export default function JobDetailPage() {
             <h1 className="text-3xl font-bold">{job.jobName}</h1>
             <span className="text-lg text-gray-600">{job.dateRange}</span>
           </div>
-          <button
-            onClick={() => setActiveModal("edit")}
-            className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors"
-          >
-            Edit
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setActiveModal("edit")}
+              className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setShowCopyModal(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded font-bold hover:bg-blue-600 transition-colors"
+            >
+              Copy Job
+            </button>
+            <button
+              onClick={() => setShowTerminateModal(true)}
+              className="px-4 py-2 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition-colors"
+            >
+              Terminate Job
+            </button>
+          </div>
         </div>
       </header>
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Job Status</h2>
         <CardFrame>
-          <div className="flex items-center justify-center space-x-8 mb-3">
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-red-500 mr-2 rounded"></div>
-              <span>Overdue</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-yellow-500 mr-2 rounded"></div>
-              <span>Next 7 days</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-green-500 mr-2 rounded"></div>
-              <span>&gt; 7 days</span>
-            </div>
-          </div>
-          <div className="relative h-6">
-            <div className="absolute inset-0 flex rounded-full overflow-hidden">
-              <div
-                className="bg-red-500 flex items-center justify-center"
-                style={{ width: `${(job.overdue / total) * 100}%` }}
-              >
-                {job.overdue > 0 && (
-                  <span className="text-xs font-bold text-white">
-                    {job.overdue}
-                  </span>
-                )}
-              </div>
-              <div
-                className="bg-yellow-500 flex items-center justify-center"
-                style={{ width: `${(job.nextSevenDays / total) * 100}%` }}
-              >
-                {job.nextSevenDays > 0 && (
-                  <span className="text-xs font-bold text-white">
-                    {job.nextSevenDays}
-                  </span>
-                )}
-              </div>
-              <div
-                className="bg-green-500 flex items-center justify-center"
-                style={{ width: `${(job.sevenDaysPlus / total) * 100}%` }}
-              >
-                {job.sevenDaysPlus > 0 && (
-                  <span className="text-xs font-bold text-white">
-                    {job.sevenDaysPlus}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          <StatusBar
+            label="Items Due"
+            items={[]}
+            isDueBar={true}
+            dueItems={{
+              overdue: job.overdue,
+              nextSevenDays: job.nextSevenDays,
+              sevenDaysPlus: job.sevenDaysPlus,
+            }}
+          />
+          <StatusBar label="Tasks" items={job.tasks} withLegend={true} />
+          <StatusBar label="Materials" items={job.materials} />
         </CardFrame>
       </section>
 
@@ -877,6 +864,7 @@ export default function JobDetailPage() {
             currentWeek={job.currentWeek}
             startDate={job.phases[0]?.startDate}
             endDate={job.phases[job.phases.length - 1]?.endDate}
+            onStatusUpdate={handleStatusUpdate}
           />
         </CardFrame>
       </section>
@@ -1023,6 +1011,19 @@ export default function JobDetailPage() {
           </div>
         </div>
       )}
+
+      <CopyJobModal
+        isOpen={showCopyModal}
+        onClose={() => setShowCopyModal(false)}
+        jobName={job.jobName}
+        onCopyJob={(startDate) => {}}
+      />
+      <TerminateJobModal
+        isOpen={showTerminateModal}
+        onClose={() => setShowTerminateModal(false)}
+        onTerminate={() => {
+        }}
+      />
     </>
   );
 }

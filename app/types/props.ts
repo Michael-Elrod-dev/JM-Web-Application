@@ -101,6 +101,11 @@ export interface TimelineProps {
   currentWeek: number;
   startDate: string;
   endDate: string;
+  onStatusUpdate: (
+    itemId: number,
+    type: "task" | "material",
+    newStatus: "Complete" | "Incomplete" | "In Progress"
+  ) => void;
 }
 
 export interface CardFrameProps {

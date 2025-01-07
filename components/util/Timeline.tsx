@@ -248,6 +248,7 @@ const Timeline: React.FC<TimelineProps> = ({
   startDate,
   endDate,
   currentWeek,
+  onStatusUpdate
 }) => {
   const [selectedPhase, setSelectedPhase] = useState<any | null>(null);
   const [selectedItem, setSelectedItem] = useState<TimelineItem | null>(null);
@@ -320,35 +321,44 @@ const Timeline: React.FC<TimelineProps> = ({
     itemId: number,
     type: "task" | "material",
     newStatus: "Complete" | "Incomplete" | "In Progress"
-  ) => {
+  ): Promise<void> => {
     try {
       const response = await fetch(`/api/calendar?type=${type}&id=${itemId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-
-      if (response.ok) {
-        setSelectedPhase((prevPhase: PhaseView) => ({
-          ...prevPhase,
-          tasks: prevPhase.tasks.map((task: TaskView) =>
-            task.task_id === itemId && type === "task"
-              ? { ...task, task_status: newStatus }
-              : task
-          ),
-          materials: prevPhase.materials.map((material: MaterialView) =>
-            material.material_id === itemId && type === "material"
-              ? { ...material, material_status: newStatus }
-              : material
-          ),
-        }));
+  
+      if (!response.ok) {
+        console.error("Failed to update status:", await response.text());
+        return;
       }
+
+      onStatusUpdate(itemId, type, newStatus);
+  
+      setSelectedPhase((prevPhase: PhaseView | null) =>
+        prevPhase
+          ? {
+              ...prevPhase,
+              tasks: prevPhase.tasks.map((task) =>
+                task.task_id === itemId && type === "task"
+                  ? { ...task, task_status: newStatus }
+                  : task
+              ),
+              materials: prevPhase.materials.map((material) =>
+                material.material_id === itemId && type === "material"
+                  ? { ...material, material_status: newStatus }
+                  : material
+              ),
+            }
+          : null
+      );
+  
+      onStatusUpdate(itemId, type, newStatus);
     } catch (error) {
       console.error("Error updating status:", error);
     }
-  };
+  };  
 
   return (
     <>

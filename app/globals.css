@@ -76,3 +76,7 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
 .modal-content {
   z-index: 10001 !important; /* Modal content should be above the overlay */
 }
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
