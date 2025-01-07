@@ -79,6 +79,7 @@ export const EventPopup = ({
       if (response.ok) {
         onStatusUpdate(event.itemId, event.type, newStatus);
         event.status = newStatus;
+        onClose();
       } else {
         console.error("Failed to update status");
       }
@@ -108,7 +109,7 @@ export const EventPopup = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]"
       onClick={onClose}
     >
       <div
@@ -118,7 +119,6 @@ export const EventPopup = ({
         <div className="space-y-4">
           {/* Title as Header */}
           <h2 className="text-xl font-bold text-zinc-700 dark:text-white">{event.title}</h2>
-  
           {/* Date Range Section */}
           <div>
             <h3 className="font-semibold text-zinc-700 dark:text-white mb-2">Date Range</h3>

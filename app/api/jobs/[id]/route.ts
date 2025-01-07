@@ -1,8 +1,8 @@
 // app/api/jobs/[id]/route.ts
-import { NextResponse } from 'next/server';
-import pool from '@/app/lib/db';
-import { RowDataPacket } from 'mysql2';
-import { JobUpdatePayload } from '@/app/types/database'
+import { NextResponse } from "next/server";
+import pool from "@/app/lib/db";
+import { RowDataPacket } from "mysql2";
+import { JobUpdatePayload } from "@/app/types/database";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -28,6 +28,7 @@ interface User extends RowDataPacket {
 
 interface Task extends RowDataPacket {
   task_id: number;
+  phase_id: number;
   task_title: string;
   task_startdate: string;
   task_duration: number;
@@ -38,6 +39,7 @@ interface Task extends RowDataPacket {
 
 interface Material extends RowDataPacket {
   material_id: number;
+  phase_id: number;
   material_title: string;
   material_duedate: string;
   material_status: string;
@@ -62,7 +64,6 @@ interface StatusCounts extends RowDataPacket {
   sevenDaysPlus: number;
 }
 
-
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -72,7 +73,8 @@ export async function GET(
 
     try {
       // Get basic job info
-      const [jobRows] = await connection.query<JobDetails[]>(`
+      const [jobRows] = await connection.query<JobDetails[]>(
+        `
         SELECT 
           j.job_id,
           j.job_title,
@@ -122,16 +124,19 @@ export async function GET(
           CEIL(DATEDIFF(CURDATE(), j.job_startdate) / 7) + 1 as current_week
         FROM job j
         WHERE j.job_id = ?
-      `, [params.id]);
+      `,
+        [params.id]
+      );
 
       if (!jobRows.length) {
-        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+        return NextResponse.json({ error: "Job not found" }, { status: 404 });
       }
 
       const job = jobRows[0];
 
       // Get phases with their tasks, materials, and notes
-      const [phases] = await connection.query<Phase[]>(`
+      const [phases] = await connection.query<Phase[]>(
+        `
         SELECT 
           p.phase_id as id,
           p.phase_title as name,
@@ -158,10 +163,13 @@ export async function GET(
         FROM phase p
         WHERE p.job_id = ?
         ORDER BY p.phase_startdate
-      `, [params.id]);
+      `,
+        [params.id]
+      );
 
       // Get status counts for progress bar
-      const [statusCounts] = await connection.query<StatusCounts[]>(`
+      const [statusCounts] = await connection.query<StatusCounts[]>(
+        `
         WITH task_counts AS (
           SELECT
             COUNT(CASE 
@@ -205,13 +213,84 @@ export async function GET(
             (task_next_seven + material_next_seven) as nextSevenDays,
             (task_beyond_seven + material_beyond_seven) as sevenDaysPlus
         FROM task_counts, material_counts
-      `, [job.job_id, job.job_id]);
+      `,
+        [job.job_id, job.job_id]
+      );
+
+      // Get all tasks for the job
+      const [allTasks] = await connection.query<Task[]>(
+        `
+  SELECT 
+    t.task_id,
+    t.phase_id,
+    t.task_title,
+    t.task_startdate,
+    t.task_duration,
+    t.task_status,
+    t.task_description,
+    JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'user_id', u.user_id,
+        'user_first_name', u.user_first_name,
+        'user_last_name', u.user_last_name,
+        'user_phone', u.user_phone,
+        'user_email', u.user_email
+      )
+    ) as users
+  FROM task t
+  LEFT JOIN user_task ut ON t.task_id = ut.task_id
+  LEFT JOIN app_user u ON ut.user_id = u.user_id
+  JOIN phase p ON t.phase_id = p.phase_id
+  WHERE p.job_id = ?
+  GROUP BY t.task_id`,
+        [params.id]
+      );
+
+      // Get all materials for the job
+      const [allMaterials] = await connection.query<Material[]>(
+        `
+  SELECT 
+    m.material_id,
+    m.phase_id,
+    m.material_title,
+    m.material_duedate,
+    m.material_status,
+    m.material_description,
+    JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'user_id', u.user_id,
+        'user_first_name', u.user_first_name,
+        'user_last_name', u.user_last_name,
+        'user_phone', u.user_phone,
+        'user_email', u.user_email
+      )
+    ) as users
+  FROM material m
+  LEFT JOIN user_material um ON m.material_id = um.material_id
+  LEFT JOIN app_user u ON um.user_id = u.user_id
+  JOIN phase p ON m.phase_id = p.phase_id
+  WHERE p.job_id = ?
+  GROUP BY m.material_id`,
+        [params.id]
+      );
+
+      const transformedTasks = allTasks.map((task) => ({
+        ...task,
+        users: task.users[0]?.user_id ? task.users : [],
+      }));
+
+      const transformedMaterials = allMaterials.map((material) => ({
+        ...material,
+        users: material.users[0]?.user_id ? material.users : [],
+      }));
 
       // Enhance each phase with its tasks, materials, and notes
-      const enhancedPhases = await Promise.all(phases.map(async (phase) => {
-        const [tasks] = await connection.query<Task[]>(
-          `SELECT 
+      const enhancedPhases = await Promise.all(
+        phases.map(async (phase) => {
+          const [tasks] = await connection.query<Task[]>(
+            `SELECT 
             t.task_id,
+            t.phase_id,
             t.task_title,
             t.task_startdate,
             t.task_duration,
@@ -231,12 +310,13 @@ export async function GET(
           LEFT JOIN app_user u ON ut.user_id = u.user_id
           WHERE t.phase_id = ?
           GROUP BY t.task_id`,
-          [phase.id]
-        );
+            [phase.id]
+          );
 
-        const [materials] = await connection.query<Material[]>(
-          `SELECT 
+          const [materials] = await connection.query<Material[]>(
+            `SELECT 
             m.material_id,
+            m.phase_id,
             m.material_title,
             m.material_duedate,
             m.material_status,
@@ -255,11 +335,11 @@ export async function GET(
           LEFT JOIN app_user u ON um.user_id = u.user_id
           WHERE m.phase_id = ?
           GROUP BY m.material_id`,
-          [phase.id]
-        );
+            [phase.id]
+          );
 
-        const [notes] = await connection.query<RowDataPacket[]>(
-          `SELECT 
+          const [notes] = await connection.query<RowDataPacket[]>(
+            `SELECT 
             n.note_details,
             n.created_at,
             JSON_OBJECT(
@@ -274,38 +354,42 @@ export async function GET(
           FROM note n
           JOIN app_user u ON n.created_by = u.user_id
           WHERE n.phase_id = ?`,
-          [phase.id]
-        );
+            [phase.id]
+          );
 
-        const transformedTasks = tasks.map(task => ({
-          ...task,
-          users: task.users[0]?.user_id ? task.users : []
-        }));
+          const transformedTasks = tasks.map((task) => ({
+            ...task,
+            users: task.users[0]?.user_id ? task.users : [],
+          }));
 
-        const transformedMaterials = materials.map(material => ({
-          ...material,
-          users: material.users[0]?.user_id ? material.users : []
-        }));
+          const transformedMaterials = materials.map((material) => ({
+            ...material,
+            users: material.users[0]?.user_id ? material.users : [],
+          }));
 
-        const transformedNotes = notes.map(note => ({
-          ...note,
-          created_by: typeof note.created_by === 'string'
-            ? JSON.parse(note.created_by)
-            : note.created_by,
-        }));        
+          const transformedNotes = notes.map((note) => ({
+            ...note,
+            created_by:
+              typeof note.created_by === "string"
+                ? JSON.parse(note.created_by)
+                : note.created_by,
+          }));
 
-        return {
-          ...phase,
-          tasks: transformedTasks,
-          materials: transformedMaterials,
-          notes: transformedNotes
-        };
-      }));
+          return {
+            ...phase,
+            tasks: transformedTasks.filter(task => task.phase_id === phase.id),
+            materials: transformedMaterials.filter(material => material.phase_id === phase.id),
+            notes: transformedNotes,
+          };
+        })
+      );
 
       const jobDetails = {
         ...job,
         phases: enhancedPhases,
-        ...statusCounts[0]
+        tasks: transformedTasks,
+        materials: transformedMaterials,
+        ...statusCounts[0],
       };
 
       return NextResponse.json({ job: jobDetails });
@@ -313,9 +397,9 @@ export async function GET(
       connection.release();
     }
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch job details' },
+      { error: "Failed to fetch job details" },
       { status: 500 }
     );
   }
@@ -329,7 +413,7 @@ export async function POST(
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
-        { error: 'Unauthorized: Session not found or user not authenticated' },
+        { error: "Unauthorized: Session not found or user not authenticated" },
         { status: 401 }
       );
     }
@@ -341,13 +425,13 @@ export async function POST(
       const userId = parseInt(session.user.id);
       // Check if the phase_id exists and is valid
       const [phaseCheck] = await connection.query<RowDataPacket[]>(
-        'SELECT phase_id FROM phase WHERE phase_id = ? AND job_id = ?',
+        "SELECT phase_id FROM phase WHERE phase_id = ? AND job_id = ?",
         [body.phase_id, params.id]
       );
 
       if (!phaseCheck.length) {
         return NextResponse.json(
-          { error: 'Invalid phase ID or phase does not belong to this job' },
+          { error: "Invalid phase ID or phase does not belong to this job" },
           { status: 400 }
         );
       }
@@ -359,11 +443,7 @@ export async function POST(
           note_details,
           created_by
         ) VALUES (?, ?, ?)`,
-        [
-          body.phase_id,
-          body.note_details,
-          userId
-        ]
+        [body.phase_id, body.note_details, userId]
       );
 
       // Fetch the newly created note with user info
@@ -387,16 +467,12 @@ export async function POST(
       );
 
       return NextResponse.json({ note: newNote[0] });
-
     } finally {
       connection.release();
     }
   } catch (error) {
-    console.error('Database error:', error);
-    return NextResponse.json(
-      { error: 'Failed to add note' },
-      { status: 500 }
-    );
+    console.error("Database error:", error);
+    return NextResponse.json({ error: "Failed to add note" }, { status: 500 });
   }
 }
 
@@ -410,16 +486,16 @@ export async function PUT(
     const { id, type, newStatus } = body;
 
     try {
-      if (type !== 'task' && type !== 'material') {
+      if (type !== "task" && type !== "material") {
         return NextResponse.json(
-          { error: 'Invalid type specified' },
+          { error: "Invalid type specified" },
           { status: 400 }
         );
       }
 
-      const table = type === 'task' ? 'task' : 'material';
-      const idField = type === 'task' ? 'task_id' : 'material_id';
-      const statusField = type === 'task' ? 'task_status' : 'material_status';
+      const table = type === "task" ? "task" : "material";
+      const idField = type === "task" ? "task_id" : "material_id";
+      const statusField = type === "task" ? "task_status" : "material_status";
 
       await connection.query(
         `UPDATE ${table} SET ${statusField} = ? WHERE ${idField} = ?`,
@@ -431,9 +507,9 @@ export async function PUT(
       connection.release();
     }
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to update status' },
+      { error: "Failed to update status" },
       { status: 500 }
     );
   }
@@ -453,17 +529,17 @@ export async function PATCH(
 
     // Handle job title updates
     if (body.job_title) {
-      await connection.query(
-        'UPDATE job SET job_title = ? WHERE job_id = ?',
-        [body.job_title, jobId]
-      );
+      await connection.query("UPDATE job SET job_title = ? WHERE job_id = ?", [
+        body.job_title,
+        jobId,
+      ]);
     }
 
     // Handle start date changes
     if (body.job_startdate) {
       // Get current job start date
       const [currentJob] = await connection.query<RowDataPacket[]>(
-        'SELECT DATE(job_startdate) as job_startdate FROM job WHERE job_id = ?',
+        "SELECT DATE(job_startdate) as job_startdate FROM job WHERE job_id = ?",
         [jobId]
       );
 
@@ -475,13 +551,14 @@ export async function PATCH(
       newStartDate.setUTCHours(0, 0, 0, 0);
 
       const daysDifference = Math.floor(
-        (newStartDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24)
+        (newStartDate.getTime() - currentStartDate.getTime()) /
+          (1000 * 60 * 60 * 24)
       );
 
       if (daysDifference !== 0) {
         // Update job start date using DATE() to strip time components
         await connection.query(
-          'UPDATE job SET job_startdate = DATE(?) WHERE job_id = ?',
+          "UPDATE job SET job_startdate = DATE(?) WHERE job_id = ?",
           [body.job_startdate, jobId]
         );
 
@@ -504,7 +581,8 @@ export async function PATCH(
         );
 
         // Update phase dates based on earliest task or material date
-        await connection.query(`
+        await connection.query(
+          `
           UPDATE phase p
           SET p.phase_startdate = (
             SELECT MIN(earliest_date) 
@@ -521,7 +599,9 @@ export async function PATCH(
             ) dates
           )
           WHERE p.job_id = ?
-        `, [jobId]);
+        `,
+          [jobId]
+        );
       }
     }
 
@@ -548,7 +628,8 @@ export async function PATCH(
       );
 
       // Update phase dates based on earliest task or material date
-      await connection.query(`
+      await connection.query(
+        `
         UPDATE phase p
         SET p.phase_startdate = (
           SELECT MIN(earliest_date) 
@@ -565,17 +646,18 @@ export async function PATCH(
           ) dates
         )
         WHERE p.job_id = ?
-      `, [jobId]);
+      `,
+        [jobId]
+      );
     }
 
     await connection.commit();
     return NextResponse.json({ success: true });
-
   } catch (error) {
     await connection.rollback();
-    console.error('Error updating job:', error);
+    console.error("Error updating job:", error);
     return NextResponse.json(
-      { error: 'Failed to update job' },
+      { error: "Failed to update job" },
       { status: 500 }
     );
   } finally {

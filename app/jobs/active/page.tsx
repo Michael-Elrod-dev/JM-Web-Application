@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import LargeJobFrame from "../../../components/job/LargeJobFrame";
 import { useSearchParams } from "next/navigation";
-import { JobDetailView } from "../../types/views";
+import { JobDetailView, TaskView, MaterialView } from "../../types/views";
 
 export default function ActiveJobsPage() {
   const searchParams = useSearchParams();
@@ -18,54 +18,65 @@ export default function ActiveJobsPage() {
         const response = await fetch("/api/jobs?view=detailed&status=active");
         const data = await response.json();
             
-        const transformedJobs = data.jobs.map((job: any): JobDetailView => ({
-          id: job.job_id,
-          jobName: job.job_title,
-          job_startdate: job.job_startdate,
-          dateRange: job.date_range,
-          currentWeek: job.current_week,
-          phases: job.phases.map((phase: any) => ({
-            id: phase.id,
-            name: phase.name,
-            startDate: phase.startDate,
-            endDate: phase.endDate,
-            color: phase.color,
-            tasks: [],
-            materials: [],
-            notes: [],
-          })),
-          overdue: job.overdue,
-          nextSevenDays: job.nextSevenDays,
-          sevenDaysPlus: job.sevenDaysPlus,
-          tasks: job.tasks.map((task: any) => ({
-            task_id: Math.random(),
+        const transformedJobs = data.jobs.map((job: any): JobDetailView => {
+          // First transform tasks and materials once
+          const transformedTasks = job.tasks.map((task: any) => ({
+            task_id: task.task_id,
+            phase_id: task.phase_id,
             task_title: task.task_title,
-            task_startdate: '',
-            task_duration: 0,
+            task_startdate: task.task_startdate || '',
+            task_duration: task.task_duration || 0,
             task_status: task.task_status,
-            task_description: '',
-            users: []
-          })),
-          materials: job.materials.map((material: any) => ({
-            material_id: Math.random(),
+            task_description: task.task_description || '',
+            users: task.users || []
+          }));
+  
+          const transformedMaterials = job.materials.map((material: any) => ({
+            material_id: material.material_id,
+            phase_id: material.phase_id,
             material_title: material.material_title,
-            material_duedate: '',
+            material_duedate: material.material_duedate || '',
             material_status: material.material_status,
-            material_description: '',
-            users: []
-          })),
-          contacts: job.workers || [],
-        }));
-
+            material_description: material.material_description || '',
+            users: material.users || []
+          }));
+  
+          return {
+            id: job.job_id,
+            jobName: job.job_title,
+            job_startdate: job.job_startdate,
+            dateRange: job.date_range,
+            currentWeek: job.current_week,
+            // Store transformed tasks and materials at job level
+            tasks: transformedTasks,
+            materials: transformedMaterials,
+            phases: job.phases.map((phase: any) => ({
+              id: phase.id,
+              name: phase.name,
+              startDate: phase.startDate,
+              endDate: phase.endDate,
+              color: phase.color,
+              // Filter the already transformed tasks and materials
+              tasks: transformedTasks.filter((task: TaskView) => task.phase_id === phase.id),
+              materials: transformedMaterials.filter((material: MaterialView) => material.phase_id === phase.id),
+              notes: phase.notes || [],
+            })),
+            overdue: job.overdue,
+            nextSevenDays: job.nextSevenDays,
+            sevenDaysPlus: job.sevenDaysPlus,
+            contacts: job.workers || [],
+          };
+        });
+  
         setJobs(transformedJobs);
         
       } catch (error) {
         console.error("Failed to fetch jobs:", error);
       }
     };
-
+  
     fetchJobs();
-}, []);
+  }, []);
 
   const searchTerms = searchQuery
     .split(",")

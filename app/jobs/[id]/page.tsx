@@ -6,7 +6,7 @@ import Timeline from "@/components/util/Timeline";
 import ContentTabs from "@/components/tabs/ContentTabs";
 import CardFrame from "@/components/util/CardFrame";
 import PhaseCard from "@/components/job/PhaseCard";
-import ContactCard from "@/components/util/ContactCard";
+import ContactCard from "@/components/contact/ContactCard";
 import Image from "next/image";
 import { JobUpdatePayload, FormTask, FormMaterial } from "@/app/types/database";
 import { useParams } from "next/navigation";
@@ -282,93 +282,103 @@ export default function JobDetailPage() {
   const handleTaskCreate = async (phaseId: number, newTask: FormTask) => {
     try {
       const response = await fetch(`/api/jobs/${id}/phases/${phaseId}/tasks`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(newTask),
       });
-  
+
       if (!response.ok) {
-        throw new Error('Failed to create task');
+        throw new Error("Failed to create task");
       }
-  
+
       const createdTask = await response.json();
-  
-      setJob(prevJob => {
+
+      setJob((prevJob) => {
         if (!prevJob) return null;
-  
-        const updatedPhases = prevJob.phases.map(phase => {
+
+        const updatedPhases = prevJob.phases.map((phase) => {
           if (phase.id === phaseId) {
             const updatedTasks = [...phase.tasks, createdTask].sort(
-              (a, b) => new Date(a.task_startdate).getTime() - new Date(b.task_startdate).getTime()
+              (a, b) =>
+                new Date(a.task_startdate).getTime() -
+                new Date(b.task_startdate).getTime()
             );
             return { ...phase, tasks: updatedTasks };
           }
           return phase;
         });
-  
+
         const newStatusCounts = calculateStatusCounts(updatedPhases);
         const newDateRange = calculateDateRange(updatedPhases);
-  
+
         return {
           ...prevJob,
           phases: updatedPhases,
           dateRange: newDateRange,
-          ...newStatusCounts
+          ...newStatusCounts,
         };
       });
-  
+
       return createdTask;
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
       throw error;
     }
   };
-  
-  const handleMaterialCreate = async (phaseId: number, newMaterial: FormMaterial) => {
+
+  const handleMaterialCreate = async (
+    phaseId: number,
+    newMaterial: FormMaterial
+  ) => {
     try {
-      const response = await fetch(`/api/jobs/${id}/phases/${phaseId}/materials`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newMaterial),
-      });
-  
+      const response = await fetch(
+        `/api/jobs/${id}/phases/${phaseId}/materials`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newMaterial),
+        }
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to create material');
+        throw new Error("Failed to create material");
       }
-  
+
       const createdMaterial = await response.json();
-  
-      setJob(prevJob => {
+
+      setJob((prevJob) => {
         if (!prevJob) return null;
-  
-        const updatedPhases = prevJob.phases.map(phase => {
+
+        const updatedPhases = prevJob.phases.map((phase) => {
           if (phase.id === phaseId) {
             const updatedMaterials = [...phase.materials, createdMaterial].sort(
-              (a, b) => new Date(a.material_duedate).getTime() - new Date(b.material_duedate).getTime()
+              (a, b) =>
+                new Date(a.material_duedate).getTime() -
+                new Date(b.material_duedate).getTime()
             );
             return { ...phase, materials: updatedMaterials };
           }
           return phase;
         });
-  
+
         const newStatusCounts = calculateStatusCounts(updatedPhases);
         const newDateRange = calculateDateRange(updatedPhases);
-  
+
         return {
           ...prevJob,
           phases: updatedPhases,
           dateRange: newDateRange,
-          ...newStatusCounts
+          ...newStatusCounts,
         };
       });
-  
+
       return createdMaterial;
     } catch (error) {
-      console.error('Error creating material:', error);
+      console.error("Error creating material:", error);
       throw error;
     }
   };
@@ -385,7 +395,7 @@ export default function JobDetailPage() {
     phases.forEach((phase) => {
       // Count tasks
       phase.tasks.forEach((task) => {
-        if (task.task_status === "Incomplete") {
+        if (task.task_status != "Complete") {
           const dueDate = new Date(task.task_startdate);
           dueDate.setDate(dueDate.getDate() + task.task_duration);
 
@@ -397,7 +407,7 @@ export default function JobDetailPage() {
 
       // Count materials
       phase.materials.forEach((material) => {
-        if (material.material_status === "Incomplete") {
+        if (material.material_status != "Complete") {
           const dueDate = new Date(material.material_duedate);
 
           if (dueDate < today) overdue++;
@@ -467,64 +477,75 @@ export default function JobDetailPage() {
         }
         const data = await response.json();
 
+        // First transform tasks and materials with proper typing
+        const transformedTasks = data.job.tasks.map(
+          (task: any): TaskView => ({
+            task_id: task.task_id,
+            phase_id: task.phase_id,
+            task_title: task.task_title,
+            task_startdate: new Date(task.task_startdate)
+              .toISOString()
+              .split("T")[0],
+            task_duration: task.task_duration,
+            task_status: task.task_status,
+            task_description: task.task_description,
+            users: task.users.map((user: any) => ({
+              user_id: user.user_id,
+              first_name: user.user_first_name,
+              last_name: user.user_last_name,
+              user_email: user.user_email,
+              user_phone: user.user_phone || "",
+            })),
+          })
+        );
+
+        const transformedMaterials = data.job.materials.map(
+          (material: any): MaterialView => ({
+            material_id: material.material_id,
+            phase_id: material.phase_id,
+            material_title: material.material_title,
+            material_duedate: new Date(material.material_duedate)
+              .toISOString()
+              .split("T")[0],
+            material_status: material.material_status,
+            material_description: material.material_description,
+            users: material.users.map((user: any) => ({
+              user_id: user.user_id,
+              first_name: user.user_first_name,
+              last_name: user.user_last_name,
+              user_email: user.user_email,
+              user_phone: user.user_phone || "",
+            })),
+          })
+        );
+
         const transformedJob: JobDetailView = {
           id: data.job.job_id,
           jobName: data.job.job_title,
           job_startdate: data.job.job_startdate,
           dateRange: data.job.date_range,
           currentWeek: data.job.current_week,
-          phases: data.job.phases.map((phase: any): PhaseView => {
-            return {
+          tasks: transformedTasks,
+          materials: transformedMaterials,
+          phases: data.job.phases.map(
+            (phase: any): PhaseView => ({
               id: phase.id,
               name: phase.name,
               startDate: phase.startDate,
               endDate: phase.endDate,
               color: phase.color,
-              tasks: phase.tasks.map(
-                (task: any): TaskView => ({
-                  task_id: task.task_id,
-                  task_title: task.task_title,
-                  task_startdate: new Date(task.task_startdate)
-                    .toISOString()
-                    .split("T")[0],
-                  task_duration: task.task_duration,
-                  task_status: task.task_status,
-                  task_description: task.task_description,
-                  users: task.users.map((user: any) => ({
-                    user_id: user.user_id,
-                    first_name: user.user_first_name,
-                    last_name: user.user_last_name,
-                    user_email: user.user_email,
-                    user_phone: user.user_phone || "",
-                  })),
-                })
+              tasks: transformedTasks.filter(
+                (task: TaskView) => task.phase_id === phase.id
               ),
-              materials: phase.materials.map(
-                (material: any): MaterialView => ({
-                  material_id: material.material_id,
-                  material_title: material.material_title,
-                  material_duedate: new Date(material.material_duedate)
-                    .toISOString()
-                    .split("T")[0],
-                  material_status: material.material_status,
-                  material_description: material.material_description,
-                  users: material.users.map((user: any) => ({
-                    user_id: user.user_id,
-                    first_name: user.user_first_name,
-                    last_name: user.user_last_name,
-                    user_email: user.user_email,
-                    user_phone: user.user_phone || "",
-                  })),
-                })
+              materials: transformedMaterials.filter(
+                (material: MaterialView) => material.phase_id === phase.id
               ),
               notes: phase.notes || [],
-            };
-          }),
+            })
+          ),
           overdue: data.job.overdue,
           nextSevenDays: data.job.nextSevenDays,
           sevenDaysPlus: data.job.sevenDaysPlus,
-          tasks: data.job.tasks || [],
-          materials: data.job.materials || [],
           contacts: data.job.contacts || [],
         };
 
@@ -679,11 +700,13 @@ export default function JobDetailPage() {
               }}
               phaseNumber={index + 1}
               showTasks={
-                (activeTab === "Tasks" || activeTab === "Overview") ||
+                activeTab === "Tasks" ||
+                activeTab === "Overview" ||
                 (activeTab === "My Items" && hasFilteredTasks)
               }
               showMaterials={
-                (activeTab === "Materials" || activeTab === "Overview") ||
+                activeTab === "Materials" ||
+                activeTab === "Overview" ||
                 (activeTab === "My Items" && hasFilteredMaterials)
               }
               contacts={contacts}

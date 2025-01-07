@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import ContactCard from "../util/ContactCard";
+import ContactCard from "../contact/ContactCard";
 import { FormTask } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
 import { TaskCardProps } from "../../app/types/props";
-import { formatDate } from '@/app/utils';
+import { formatDate } from "@/app/utils";
+import { handleConfirmDelete } from "../../handlers/new/jobs"
 import {
   handleStartDateChange,
   handleInputChange,
@@ -14,7 +15,6 @@ import {
   handleContactSelect,
   handleContactRemove,
   handleDeleteClick,
-  handleConfirmDelete,
   handleDone,
 } from "../../handlers/new/tasks";
 
@@ -24,6 +24,8 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
   onDelete,
   phaseStartDate,
   contacts,
+  phase,
+  onPhaseUpdate
 }) => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -48,8 +50,13 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
         ...prev,
         startDate: phaseStartDate,
       }));
+    } else {
+      setLocalTask({
+        ...task,
+        isExpanded: localTask?.isExpanded || task.isExpanded
+      });
     }
-  }, [task.id, task.startDate, phaseStartDate]);
+  }, [task, phaseStartDate, localTask?.isExpanded]);
 
   return (
     <div
@@ -220,7 +227,7 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
               Done
             </button>
             <button
-              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm, onDelete, phase, onPhaseUpdate)}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
@@ -232,7 +239,11 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
           <div className="overflow-hidden text-ellipsis whitespace-nowrap">
             {localTask.title}
           </div>
-          <div className="text-center">{formatDate(localTask.startDate)}</div>
+          <div className="text-center">
+            {(() => {
+              return formatDate(localTask.startDate);
+            })()}
+          </div>
           <div className="flex justify-end">
             <button
               onClick={() => {
@@ -245,7 +256,7 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
               <FaEdit size={18} />
             </button>
             <button
-              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm, onDelete, phase, onPhaseUpdate)}
               className="text-zinc-400 hover:text-red-500 transition-colors"
             >
               <FaTrash size={18} />
@@ -272,7 +283,7 @@ const NewTaskCard: React.FC<TaskCardProps> = ({
               </button>
               <button
                 onClick={() =>
-                  handleConfirmDelete(onDelete, setShowDeleteConfirm)
+                  handleConfirmDelete(onDelete, setShowDeleteConfirm, phase, onPhaseUpdate)
                 }
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >

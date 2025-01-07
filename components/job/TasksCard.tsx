@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SmallCardFrame from "../util/SmallCardFrame";
 import StatusButton from "./StatusButton";
-import { formatPhoneNumber } from "../../app/utils";
+import { formatPhoneNumber, createLocalDate } from "../../app/utils";
 import { TaskView, UserView } from "../../app/types/views";
 import { TaskUpdatePayload } from "@/app/types/database";
 
@@ -75,7 +75,7 @@ const TasksCard: React.FC<TasksCardProps> = ({
 
   const calculateDateRange = (startDate: string, duration: number): string => {
     try {
-      const start = new Date(startDate);
+      const start = createLocalDate(startDate);
       if (isNaN(start.getTime())) {
         throw new Error("Invalid start date");
       }
@@ -89,7 +89,7 @@ const TasksCard: React.FC<TasksCardProps> = ({
       }
   
       // For longer durations, show the range
-      const end = new Date(startDate);
+      const end = createLocalDate(startDate);
       end.setDate(end.getDate() + (duration - 1));
   
       return `${start.toLocaleDateString("en-US", {
@@ -107,11 +107,10 @@ const TasksCard: React.FC<TasksCardProps> = ({
   
   const calculateDueDate = (startDate: string, duration: number): string => {
     try {
-      const date = new Date(startDate);
+      const date = createLocalDate(startDate);
       if (isNaN(date.getTime())) {
         throw new Error("Invalid start date");
       }
-      // If duration is 0, treat it same as duration 1 (same day)
       if (duration > 0) {
         date.setDate(date.getDate() + (duration - 1));
       }

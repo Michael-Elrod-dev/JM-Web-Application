@@ -24,37 +24,39 @@ export default function ClosedJobsPage() {
           job_startdate: job.job_startdate,
           dateRange: job.date_range,
           currentWeek: job.current_week,
+          tasks: job.tasks.map((task: any) => ({
+            task_id: task.task_id,
+            phase_id: task.phase_id,  // Make sure this is included in API response
+            task_title: task.task_title,
+            task_startdate: task.task_startdate || '',
+            task_duration: task.task_duration || 0,
+            task_status: task.task_status,
+            task_description: task.task_description || '',
+            users: task.users || []
+          })),
+          materials: job.materials.map((material: any) => ({
+            material_id: material.material_id,
+            phase_id: material.phase_id,  // Make sure this is included in API response
+            material_title: material.material_title,
+            material_duedate: material.material_duedate || '',
+            material_status: material.material_status,
+            material_description: material.material_description || '',
+            users: material.users || []
+          })),
           phases: job.phases.map((phase: any) => ({
             id: phase.id,
             name: phase.name,
             startDate: phase.startDate,
             endDate: phase.endDate,
             color: phase.color,
-            tasks: [],
-            materials: [],
-            notes: [],
+            tasks: job.tasks.filter((task: any) => task.phase_id === phase.id) || [],
+            materials: job.materials.filter((material: any) => material.phase_id === phase.id) || [],
+            notes: phase.notes || [],
           })),
           overdue: job.overdue,
           nextSevenDays: job.nextSevenDays,
           sevenDaysPlus: job.sevenDaysPlus,
-          tasks: job.tasks.map((task: any) => ({
-            task_id: Math.random(),
-            task_title: task.task_title,
-            task_startdate: '',
-            task_duration: 0,
-            task_status: task.task_status,
-            task_description: '',
-            users: []
-          })),
-          materials: job.materials.map((material: any) => ({
-            material_id: Math.random(),
-            material_title: material.material_title,
-            material_duedate: '',
-            material_status: material.material_status,
-            material_description: '',
-            users: []
-          })),
-          contacts: job.contacts || [],
+          contacts: job.workers || [],
         }));
 
         setJobs(transformedJobs);

@@ -254,7 +254,7 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       title: "Dig Footers & Pour Concrete", 
       startDate: "", 
       duration: "2",
-      offset: 1,
+      offset: 0,
       details: "Excavate footers and pour concrete foundation",
       isExpanded: false,
       selectedContacts: []
@@ -671,33 +671,6 @@ const FRAMING_PHASE: FormPhase = {
     },
     { 
       id: "", 
-      title: "Vanity Lights", 
-      dueDate: "",
-      offset: 30,
-      details: "Order vanity lights",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Porch Light Front", 
-      dueDate: "",
-      offset: 35,
-      details: "Order front porch light",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Porch Light Motion", 
-      dueDate: "",
-      offset: 40,
-      details: "Order motion sensor porch light",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
       title: "Bathroom Kits", 
       dueDate: "",
       offset: 20,
@@ -711,15 +684,6 @@ const FRAMING_PHASE: FormPhase = {
       dueDate: "",
       offset: 25,
       details: "Order vanity mirrors",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Mirrors", 
-      dueDate: "",
-      offset: 30,
-      details: "Order additional mirrors",
       isExpanded: false,
       selectedContacts: []
     },
@@ -877,6 +841,42 @@ const ROUGH_IN_PHASE: FormPhase = {
       dueDate: "",
       offset: 31,
       details: "Delivery of sheetrock materials",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Mirrors", 
+      dueDate: "",
+      offset: 30,
+      details: "Order additional mirrors",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Vanity Lights", 
+      dueDate: "",
+      offset: 30,
+      details: "Order vanity lights",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Porch Light Front", 
+      dueDate: "",
+      offset: 35,
+      details: "Order front porch light",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Porch Light Motion", 
+      dueDate: "",
+      offset: 40,
+      details: "Order motion sensor porch light",
       isExpanded: false,
       selectedContacts: []
     }

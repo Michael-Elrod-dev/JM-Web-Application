@@ -1,40 +1,56 @@
 // handlers/new/materials.ts
-import { FormMaterial } from "../../app/types/database";
+import { FormMaterial,FormPhase } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
+import { createLocalDate } from "@/app/utils";
+import { handleConfirmDelete } from "./jobs";
+
+export const updateMaterial = (updatedMaterial: FormMaterial, phase: FormPhase, onUpdate: (phase: FormPhase) => void) => {
+  const updatedMaterials = phase.materials.map(m => 
+    m.id === updatedMaterial.id ? updatedMaterial : m
+  ).sort((a, b) => 
+    createLocalDate(a.dueDate).getTime() - createLocalDate(b.dueDate).getTime()
+  );
+  
+  onUpdate({
+    ...phase,
+    materials: updatedMaterials
+  });
+};
 
 export const handleDeleteClick = (
-  setShowDeleteConfirm: (value: boolean) => void
-) => {
-  setShowDeleteConfirm(true);
-};
-
-export const handleConfirmDelete = (
+  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>,
   onDelete: () => void,
-  setShowDeleteConfirm: (value: boolean) => void
+  phase: FormPhase,
+  onPhaseUpdate: (phase: FormPhase) => void
 ) => {
-  onDelete();
-  setShowDeleteConfirm(false);
+  handleConfirmDelete(onDelete, setShowDeleteConfirm, phase, onPhaseUpdate);
 };
 
-export const handleInputChange = (
-  field: keyof FormMaterial,
+export const handleDueDateChange = (
+  field: string,
   value: string,
   phaseStartDate: string,
   setLocalMaterial: React.Dispatch<React.SetStateAction<FormMaterial>>,
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>
 ) => {
   if (field === "dueDate") {
-    if (new Date(value) >= new Date(phaseStartDate)) {
-      setLocalMaterial((prev) => ({ ...prev, [field]: value }));
+    if (value >= phaseStartDate) {
+      setLocalMaterial((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
       setErrors((prev) => ({ ...prev, [field]: "" }));
     } else {
       setErrors((prev) => ({
         ...prev,
-        dueDate: "Due date cannot be before phase start date",
+        [field]: "Due date cannot be before phase start date",
       }));
     }
   } else {
-    setLocalMaterial((prev) => ({ ...prev, [field]: value }));
+    setLocalMaterial((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
   }
 };

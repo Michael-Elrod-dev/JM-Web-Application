@@ -1,8 +1,7 @@
 // types/props.ts
-import { ReactNode } from 'react';
-import { FormPhase, FormMaterial, FormTask } from './database';
-import { UserView, PhaseView, NoteView, NavTab } from './views';
-
+import { ReactNode } from "react";
+import { FormPhase, FormMaterial, FormTask } from "./database";
+import { UserView, PhaseView, NoteView } from "./views";
 
 export interface DetailPhaseCardProps {
   phase: {
@@ -46,15 +45,25 @@ export interface DetailPhaseCardProps {
   showMaterials: boolean;
   contacts: UserView[];
   isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  onStatusUpdate: (
+    id: number,
+    type: "task" | "material",
+    newStatus: string
+  ) => void;
+  onTaskDelete: (taskId: number) => Promise<void>;
+  onMaterialDelete: (materialId: number) => Promise<void>;
+  onTaskCreate: (phaseId: number, task: FormTask) => Promise<any>;
+  onMaterialCreate: (phaseId: number, material: FormMaterial) => Promise<any>;
 }
 
 export interface PhaseCardProps {
   phase: FormPhase;
   onDelete: () => void;
   jobStartDate: string;
-  onUpdate: (updatedPhase: FormPhase) => void;
+  onUpdate: (phase: FormPhase, extend?: number, extendFuturePhases?: boolean) => void;
   onAddPhaseAfter: (phaseId: string) => void;
-  onMovePhase: (direction: 'up' | 'down') => void;
+  onMovePhase: (direction: "up" | "down" | "future", amount?: number) => void;
   contacts: UserView[];
 }
 
@@ -64,6 +73,8 @@ export interface TaskCardProps {
   onDelete: () => void;
   phaseStartDate: string;
   contacts: UserView[];
+  phase: FormPhase; 
+  onPhaseUpdate: (phase: FormPhase) => void;
 }
 
 export interface MaterialCardProps {
@@ -72,6 +83,8 @@ export interface MaterialCardProps {
   onDelete: () => void;
   phaseStartDate: string;
   contacts: UserView[];
+  phase: FormPhase;
+  onPhaseUpdate: (phase: FormPhase) => void;
 }
 
 export interface ContactCardProps {
@@ -90,21 +103,22 @@ export interface TimelineProps {
   endDate: string;
 }
 
-  export interface HeaderTabsProps {
-    tabs: NavTab[];
-    activeTab: string;
-    setActiveTab: (tabName: string) => void;
-  }
-
 export interface CardFrameProps {
-    children: ReactNode;
-    className?: string;
-  }
-  
+  children: ReactNode;
+  className?: string;
+}
+
 export interface NoteProps extends NoteView {
-    onClick: () => void;
-    isExpanded: boolean;
-    onAddNote?: () => void;
-    newNote?: string;
-    onNewNoteChange?: (value: string) => void;
-  }
+  onClick: () => void;
+  isExpanded: boolean;
+  onAddNote?: () => void;
+  newNote?: string;
+  onNewNoteChange?: (value: string) => void;
+}
+
+export interface InvalidItemProp {
+  type: "task" | "material" | "note";
+  phaseIndex: number;
+  itemIndex: number;
+  elementId: string;
+}

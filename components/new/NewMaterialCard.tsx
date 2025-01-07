@@ -2,15 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import ContactCard from "../util/ContactCard";
+import ContactCard from "../contact/ContactCard";
 import { FormMaterial } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
-import { MaterialCardProps } from "../../app/types/props"
-import { formatDate } from '@/app/utils';
+import { MaterialCardProps } from "../../app/types/props";
+import { formatDate } from "@/app/utils";
+import { handleConfirmDelete } from "../../handlers/new/jobs"
 import {
   handleDeleteClick,
-  handleConfirmDelete,
-  handleInputChange,
+  handleDueDateChange,
   handleContactSelect,
   handleContactRemove,
   handleDone,
@@ -22,6 +22,8 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
   onDelete,
   phaseStartDate,
   contacts,
+  phase,
+  onPhaseUpdate
 }) => {
   const [selectedContacts, setSelectedContacts] = useState<UserView[]>(
     material.selectedContacts
@@ -37,7 +39,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localMaterial, setLocalMaterial] = useState<FormMaterial>({
     ...material,
-    isExpanded: material.isExpanded
+    isExpanded: material.isExpanded,
   });
 
   useEffect(() => {
@@ -46,11 +48,19 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
         ...prev,
         dueDate: phaseStartDate,
       }));
+    } else {
+      setLocalMaterial({
+        ...material,
+        isExpanded: localMaterial?.isExpanded || material.isExpanded
+      });
     }
-  }, [material.id, material.dueDate, phaseStartDate]);
+  }, [material, phaseStartDate, localMaterial?.isExpanded]);
 
   return (
-    <div id={`material-${material.id}`} className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800">
+    <div
+      id={`material-${material.id}`}
+      className="mb-4 p-4 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800"
+    >
       {localMaterial.isExpanded ? (
         <div>
           <div className="grid grid-cols-2 gap-4 mb-2">
@@ -62,7 +72,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                 type="text"
                 value={localMaterial.title}
                 onChange={(e) =>
-                  handleInputChange(
+                  handleDueDateChange(
                     "title",
                     e.target.value,
                     phaseStartDate,
@@ -88,7 +98,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                 type="date"
                 value={localMaterial.dueDate}
                 onChange={(e) =>
-                  handleInputChange(
+                  handleDueDateChange(
                     "dueDate",
                     e.target.value,
                     phaseStartDate,
@@ -115,7 +125,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
             <textarea
               value={localMaterial.details}
               onChange={(e) =>
-                handleInputChange(
+                handleDueDateChange(
                   "details",
                   e.target.value,
                   phaseStartDate,
@@ -197,7 +207,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
               Done
             </button>
             <button
-              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm, onDelete, phase, onPhaseUpdate)}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
@@ -209,7 +219,11 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
           <div className="overflow-hidden text-ellipsis whitespace-nowrap">
             {localMaterial.title}
           </div>
-          <div className="text-center">{formatDate(localMaterial.dueDate)}</div>
+          <div className="text-center">
+            {(() => {
+              return formatDate(localMaterial.dueDate);
+            })()}
+          </div>
           <div className="flex justify-end">
             <button
               onClick={() => {
@@ -222,7 +236,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
               <FaEdit size={18} />
             </button>
             <button
-              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm, onDelete, phase, onPhaseUpdate)}
               className="text-zinc-400 hover:text-red-500 transition-colors"
             >
               <FaTrash size={18} />
@@ -248,7 +262,9 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                 Cancel
               </button>
               <button
-                onClick={() => handleConfirmDelete(onDelete, setShowDeleteConfirm)}
+                onClick={() =>
+                  handleConfirmDelete(onDelete, setShowDeleteConfirm, phase, onPhaseUpdate)
+                }
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete

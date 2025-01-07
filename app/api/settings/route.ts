@@ -12,20 +12,17 @@ interface UpdateUserRequest {
 }
 
 export async function PUT(request: Request) {
+  const connection = await pool.getConnection();
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const data: UpdateUserRequest = await request.json();
     const { firstName, lastName, phone, email } = data;
 
-    // Validation
     if (!firstName?.trim() || !lastName?.trim() || !email?.trim()) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -33,7 +30,6 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -42,9 +38,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if email is already taken by another user
-    const [existingUsers] = await pool.execute(
-      'SELECT user_id FROM app_user WHERE user_email = ? AND user_id != ?',
+    const [existingUsers] = await connection.execute(
+      "SELECT user_id FROM app_user WHERE user_email = ? AND user_id != ?",
       [email, session.user.id]
     );
 
@@ -55,8 +50,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Update user info
-    await pool.execute(
+    await connection.execute(
       `UPDATE app_user 
        SET user_first_name = ?, 
            user_last_name = ?, 
@@ -72,15 +66,16 @@ export async function PUT(request: Request) {
         firstName,
         lastName,
         phone,
-        email
-      }
-    }, { status: 200 });
-
+        email,
+      },
+    });
   } catch (error) {
     console.error("Profile update error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }
     );
+  } finally {
+    connection.release();
   }
 }

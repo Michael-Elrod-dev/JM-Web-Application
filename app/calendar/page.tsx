@@ -260,12 +260,16 @@ export default function CalendarPage() {
   }, [selectedJobId, jobs]);
 
   const renderEventContent = (eventInfo: EventContentArg) => {
+    const isComplete = eventInfo.event.extendedProps.status === "Complete";
+  
     return (
       <div
         style={{
           padding: "2px",
           overflow: "hidden",
           cursor: "pointer",
+          textDecoration: isComplete ? "line-through" : "none",
+          opacity: isComplete ? 0.5 : 1,
         }}
         className="hover:opacity-75 transition-opacity"
       >
@@ -288,6 +292,7 @@ export default function CalendarPage() {
       </div>
     );
   };
+  
 
   return (
     <div className="flex-1">

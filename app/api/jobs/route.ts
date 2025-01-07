@@ -213,7 +213,14 @@ export async function GET(request: Request) {
 
         // Get tasks with status
         const [tasks] = await connection.query<Task[]>(`
-          SELECT t.task_title, t.task_status
+          SELECT 
+            t.task_id,
+            t.phase_id,
+            t.task_title,
+            t.task_startdate,
+            t.task_duration,
+            t.task_status,
+            t.task_description
           FROM task t
           JOIN phase p ON t.phase_id = p.phase_id
           WHERE p.job_id = ?
@@ -222,7 +229,13 @@ export async function GET(request: Request) {
 
         // Get materials with status
         const [materials] = await connection.query<Material[]>(`
-          SELECT m.material_title, m.material_status
+          SELECT 
+            m.material_id,
+            m.phase_id,
+            m.material_title,
+            m.material_duedate,
+            m.material_status,
+            m.material_description
           FROM material m
           JOIN phase p ON m.phase_id = p.phase_id
           WHERE p.job_id = ?
@@ -286,12 +299,23 @@ export async function GET(request: Request) {
         return {
           ...job,
           tasks: tasks.map((t: Task) => ({
+            task_id: t.task_id,
+            phase_id: t.phase_id,
             task_title: t.task_title,
-            task_status: t.task_status
+            task_startdate: t.task_startdate,
+            task_duration: t.task_duration,
+            task_status: t.task_status,
+            task_description: t.task_description,
+            users: []
           })),
           materials: materials.map((m: Material) => ({
+            material_id: m.material_id,
+            phase_id: m.phase_id,
             material_title: m.material_title,
-            material_status: m.material_status
+            material_duedate: m.material_duedate,
+            material_status: m.material_status,
+            material_description: m.material_description,
+            users: []
           })),
           workers: workers.map((w: Worker) => w.user_full_name),
           overdue,

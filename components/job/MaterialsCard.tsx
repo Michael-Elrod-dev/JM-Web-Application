@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SmallCardFrame from "../util/SmallCardFrame";
 import StatusButton from "./StatusButton";
-import { formatPhoneNumber } from "../../app/utils";
+import { formatPhoneNumber, createLocalDate } from "../../app/utils";
 import { MaterialView, UserView } from "@/app/types/views";
 import { MaterialUpdatePayload } from "@/app/types/database";
 
@@ -32,8 +32,10 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const sortedMaterials = [...materials].sort((a, b) => 
-    new Date(a.material_duedate).getTime() - new Date(b.material_duedate).getTime()
+  const sortedMaterials = [...materials].sort(
+    (a, b) =>
+      createLocalDate(a.material_duedate).getTime() -
+      createLocalDate(b.material_duedate).getTime()
   );
 
   useEffect(() => {
@@ -189,13 +191,12 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({
                     {material.material_title}
                   </span>
                   <span className="text-sm text-center col-span-1">
-                    {new Date(material.material_duedate).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "numeric",
-                        day: "numeric",
-                      }
-                    )}
+                    {createLocalDate(
+                      material.material_duedate
+                    ).toLocaleDateString("en-US", {
+                      month: "numeric",
+                      day: "numeric",
+                    })}
                   </span>
                   <div className="flex justify-end col-span-1">
                     <div className="status-button">
@@ -226,28 +227,28 @@ const MaterialsCard: React.FC<MaterialsCardProps> = ({
                       </div>
                     )}
 
-{material.users && material.users.length > 0 && (
-  <div className="space-y-2">
-    <h5 className="text-sm font-medium mb-2">
-      Assigned People:
-    </h5>
-    {material.users.map((user) => (
-      <SmallCardFrame key={user.user_id}>
-        <div className="grid grid-cols-3 items-center">
-          <span className="text-sm">
-            {`${user.first_name} ${user.last_name}`}
-          </span>
-          <span className="text-sm text-center">
-            {formatPhoneNumber(user.user_phone)}
-          </span>
-          <span className="text-sm text-right">
-            {user.user_email}
-          </span>
-        </div>
-      </SmallCardFrame>
-    ))}
-  </div>
-)}
+                    {material.users && material.users.length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-medium mb-2">
+                          Assigned People:
+                        </h5>
+                        {material.users.map((user) => (
+                          <SmallCardFrame key={user.user_id}>
+                            <div className="grid grid-cols-3 items-center">
+                              <span className="text-sm">
+                                {`${user.first_name} ${user.last_name}`}
+                              </span>
+                              <span className="text-sm text-center">
+                                {formatPhoneNumber(user.user_phone)}
+                              </span>
+                              <span className="text-sm text-right">
+                                {user.user_email}
+                              </span>
+                            </div>
+                          </SmallCardFrame>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="mt-4 flex justify-end">
                       <button

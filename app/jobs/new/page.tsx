@@ -2,26 +2,20 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import CardFrame from "../../../components/util/CardFrame";
 import NewJobCard from "../../../components/new/NewJobCard";
 import PhaseCard from "../../../components/new/NewPhaseCard";
+import { InvalidItemProp } from "@/app/types/props";
 import { FormPhase, User } from "@/app/types/database";
+import { createJob, transformFormDataToNewJob } from "../../../handlers/jobs";
+import { createLocalDate, formatToDateString, formatDate } from "@/app/utils";
 import {
-  handleInputChange,
   handleCreateJob,
   handlePhaseUpdate,
   getJobTypes,
 } from "../../../handlers/new/jobs";
-import { createJob, transformFormDataToNewJob } from "../../../handlers/jobs";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-
-interface InvalidItem {
-  type: "task" | "material" | "note";
-  phaseIndex: number;
-  itemIndex: number;
-  elementId: string;
-}
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -37,6 +31,12 @@ export default function NewJobPage() {
   const [jobDetailsErrors, setJobDetailsErrors] = useState<{
     [key: string]: string;
   }>({});
+  const [jobDetails, setJobDetails] = useState({
+    jobTitle: "",
+    jobLocation: "",
+    description: "",
+    selectedClient: null as { user_id: number } | null,
+  });
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -54,26 +54,17 @@ export default function NewJobPage() {
     fetchContacts();
   }, []);
 
-  const [jobDetails, setJobDetails] = useState({
-    jobTitle: "",
-    jobLocation: "",
-    description: "",
-    selectedClient: null as { user_id: number } | null,
-  });
-
-  const handleMovePhase = (phaseIndex: number, direction: "up" | "down") => {
+  const handleMovePhase = (index: number, direction: "up" | "down" | "future") => {
     const newPhases = [...phases];
-    if (direction === "up" && phaseIndex > 0) {
-      // Swap with previous phase
-      [newPhases[phaseIndex], newPhases[phaseIndex - 1]] = [
-        newPhases[phaseIndex - 1],
-        newPhases[phaseIndex],
+    if (direction === "up" && index > 0) {
+      [newPhases[index], newPhases[index - 1]] = [
+        newPhases[index - 1],
+        newPhases[index],
       ];
-    } else if (direction === "down" && phaseIndex < phases.length - 1) {
-      // Swap with next phase
-      [newPhases[phaseIndex], newPhases[phaseIndex + 1]] = [
-        newPhases[phaseIndex + 1],
-        newPhases[phaseIndex],
+    } else if (direction === "down" && index < phases.length - 1) {
+      [newPhases[index], newPhases[index + 1]] = [
+        newPhases[index + 1],
+        newPhases[index],
       ];
     }
     setPhases(newPhases);
@@ -179,10 +170,10 @@ export default function NewJobPage() {
 
   const handleAddPhase = (afterPhaseId: string | null) => {
     const newPhase: FormPhase = {
-      tempId: `phase-${Date.now()}`, // Generate unique temporary ID
+      tempId: `phase-${Date.now()}`,
       title: "New Phase",
       description: "",
-      startDate: startDate, // Default to job start date
+      startDate: startDate,
       tasks: [],
       materials: [],
       notes: [],
@@ -203,7 +194,9 @@ export default function NewJobPage() {
     }
   };
 
-  const findFirstInvalidItem = (phases: FormPhase[]): InvalidItem | null => {
+  const findFirstInvalidItem = (
+    phases: FormPhase[]
+  ): InvalidItemProp | null => {
     for (let phaseIndex = 0; phaseIndex < phases.length; phaseIndex++) {
       const phase = phases[phaseIndex];
 
@@ -294,17 +287,13 @@ export default function NewJobPage() {
                   Start Date
                 </label>
                 <DatePicker
-                  selected={startDate ? new Date(startDate) : null}
+                  selected={startDate ? createLocalDate(startDate) : null}
                   onChange={(date: Date | null) => {
                     if (date) {
-                      handleInputChange(
-                        "startDate",
-                        date.toISOString().split("T")[0],
-                        setStartDate
-                      );
+                      const dateString = formatToDateString(date);
+                      setStartDate(dateString);
                     }
                   }}
-                  minDate={new Date()}
                   filterDate={(date: Date) => {
                     const day = date.getDay();
                     return day !== 0 && day !== 6;
@@ -351,11 +340,7 @@ export default function NewJobPage() {
                 .join(" ")}
             </h2>
             <span className="text-lg text-gray-600">
-              {startDate
-                .split("-")
-                .slice(1)
-                .concat(startDate.split("-")[0].slice(2))
-                .join("/")}
+              {formatDate(startDate)}
             </span>
           </div>
 
@@ -429,8 +414,8 @@ export default function NewJobPage() {
                     setPhases(newPhases);
                   }}
                   jobStartDate={startDate}
-                  onUpdate={(updatedPhase) =>
-                    handlePhaseUpdate(updatedPhase, setPhases)
+                  onUpdate={(updatedPhase, extend, extendFuturePhases) => 
+                    handlePhaseUpdate(updatedPhase, setPhases, extend, extendFuturePhases)
                   }
                   onAddPhaseAfter={(phaseId) => {
                     const newPhase = {

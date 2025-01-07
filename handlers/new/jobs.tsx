@@ -1,4 +1,5 @@
-import { FormPhase, FormTask, FormMaterial, FormNote } from "../../app/types/database";
+import { FormPhase, FormTask, FormMaterial } from "@/app/types/database";
+import { createLocalDate, formatToDateString, getCurrentBusinessDate, addBusinessDays } from "@/app/utils";
 
 declare const require: {
   context: (
@@ -12,20 +13,44 @@ declare const require: {
 };
 
 export const getJobTypes = (): string[] => {
-  const context = require.context('../../data', false, /\.tsx$/);
-  
-  return context.keys()
-    .map((key: string) => key.replace(/^\.\//, '').replace(/\.tsx$/, ''));
+  const context = require.context("../../data", false, /\.tsx$/);
+
+  return context
+    .keys()
+    .map((key: string) => key.replace(/^\.\//, "").replace(/\.tsx$/, ""));
 };
 
-export const handleInputChange = (
-  field: string,
-  value: string,
-  setStartDate: (value: string) => void
+const calculatePhaseStartDate = (
+  phase: FormPhase | Partial<FormPhase>,
+  isPreplanningPhase = false,
+  currentBusinessDate = '',
+  jobStartDate = ''
+): string => {
+  const allDates = [
+    ...(phase.tasks?.map(task => task.startDate) || []),
+    ...(phase.materials?.map(material => material.dueDate) || [])
+  ];
+
+  return allDates.length > 0
+    ? allDates.reduce((earliest, current) => 
+        current < earliest ? current : earliest
+      )
+    : isPreplanningPhase
+      ? currentBusinessDate
+      : jobStartDate;
+};
+
+export const handleConfirmDelete = (
+  onDelete: () => void,
+  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>,
+  phase: FormPhase,
+  onPhaseUpdate: (phase: FormPhase) => void
 ) => {
-  if (field === "startDate") {
-    setStartDate(value);
-  }
+  onDelete();
+  setShowDeleteConfirm(false);
+  
+  // Update phase after deletion using existing handlePhaseUpdate
+  onPhaseUpdate(phase);
 };
 
 export const handleCreateJob = async (
@@ -39,129 +64,134 @@ export const handleCreateJob = async (
     const phases = template.PHASES;
 
     if (!Array.isArray(phases) || phases.length === 0) {
-      throw new Error('No phases found in template');
+      throw new Error("No phases found in template");
     }
 
     const tempId = Date.now().toString();
-    
-    // New getCurrentBusinessDate function
-    const getCurrentBusinessDate = (currentDate: Date): Date => {
-      // Create a new date using local time components to avoid timezone issues
-      const localDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        12  // Set to noon to avoid any timezone edge cases
-      );
-      
-      const day = localDate.getDay();
-      
-      if (day === 0) { // Sunday
-        localDate.setDate(localDate.getDate() + 1);
-      } else if (day === 6) { // Saturday
-        localDate.setDate(localDate.getDate() + 2);
-      }
-      
-      return localDate;
-    };
-
     const currentDate = new Date();
-    const currentBusinessDate = getCurrentBusinessDate(currentDate).toISOString().split('T')[0];
+    const currentBusinessDate = formatToDateString(getCurrentBusinessDate(currentDate));
 
-    // Modified addBusinessDays function
-    const addBusinessDays = (date: Date, days: number): Date => {
-      const result = new Date(date);
-      const day = result.getDay();
+    const processedPhases: FormPhase[] = phases.map(
+      (phase: FormPhase, phaseIndex: number) => {
+        const isPreplanningPhase = phaseIndex === 0;
+        
+        const tasks = phase.tasks.map((task: FormTask, taskIndex: number) => {
+          let baseDate = isPreplanningPhase
+            ? task.offset === 0
+              ? getCurrentBusinessDate(new Date(currentBusinessDate))
+              : createLocalDate(startDate)
+            : createLocalDate(startDate);
 
-      // First ensure the start date is a business day
-      if (day === 0) { // Sunday
-        result.setDate(result.getDate() + 1);
-      } else if (day === 6) { // Saturday
-        result.setDate(result.getDate() + 2);
-      }
+          const taskStartDate =
+            task.offset === 0
+              ? baseDate
+              : addBusinessDays(baseDate, task.offset);
 
-      // If no additional days needed, return the business day-adjusted date
-      if (days === 0) {
-        return result;
-      }
+          return {
+            ...task,
+            id: `task-${tempId}-${phaseIndex}-${taskIndex}`,
+            startDate: formatToDateString(taskStartDate),
+            isExpanded: false,
+            selectedContacts: [],
+          };
+        });
 
-      // For additional days, add business days
-      let remaining = Math.abs(days);
-      const direction = days < 0 ? -1 : 1;
-      
-      while (remaining > 0) {
-        result.setDate(result.getDate() + direction);
-        if (result.getDay() !== 0 && result.getDay() !== 6) {
-          remaining--;
-        }
-      }
-      
-      return result;
-    };
+        const materials = phase.materials.map(
+          (material: FormMaterial, materialIndex: number) => {
+            let baseDate = isPreplanningPhase
+              ? material.offset === 0
+                ? getCurrentBusinessDate(new Date(currentBusinessDate))
+                : createLocalDate(startDate)
+              : createLocalDate(startDate);
 
-    const processedPhases: FormPhase[] = phases.map((phase: FormPhase, phaseIndex: number) => {
-      const isPreplanningPhase = phaseIndex === 0;
+            const materialDueDate =
+              material.offset === 0
+                ? baseDate
+                : addBusinessDays(baseDate, material.offset);
 
-      const tasks = phase.tasks.map((task: FormTask, taskIndex: number) => {
-        let baseDate = isPreplanningPhase 
-          ? task.offset === 0 ? getCurrentBusinessDate(new Date(currentBusinessDate)) : new Date(startDate)
-          : new Date(startDate);
+            return {
+              ...material,
+              id: `material-${tempId}-${phaseIndex}-${materialIndex}`,
+              dueDate: formatToDateString(materialDueDate),
+              isExpanded: false,
+              selectedContacts: [],
+            };
+          }
+        );
 
-        const taskStartDate = addBusinessDays(baseDate, task.offset || 0);
-        return {
-          ...task,
-          id: `task-${tempId}-${phaseIndex}-${taskIndex}`,
-          startDate: taskStartDate.toISOString().split('T')[0],
-          isExpanded: false,
-          selectedContacts: []
+        const phaseWithItems = {
+          ...phase,
+          tasks,
+          materials
         };
-      });
 
-      const materials = phase.materials.map((material: FormMaterial, materialIndex: number) => {
-        let baseDate = isPreplanningPhase
-          ? material.offset === 0 ? getCurrentBusinessDate(new Date(currentBusinessDate)) : new Date(startDate)
-          : new Date(startDate);
-          
-        const materialDueDate = addBusinessDays(baseDate, material.offset || 0);
         return {
-          ...material,
-          id: `material-${tempId}-${phaseIndex}-${materialIndex}`,
-          dueDate: materialDueDate.toISOString().split('T')[0],
-          isExpanded: false,
-          selectedContacts: []
+          ...phaseWithItems,
+          tempId: `phase-${tempId}-${phase.title.toLowerCase().replace(/\s+/g, "-")}`,
+          startDate: calculatePhaseStartDate(phaseWithItems, isPreplanningPhase, currentBusinessDate, startDate),
+          notes: [],
         };
-      });
-
-      const allDates = [...tasks.map(task => task.startDate), ...materials.map(material => material.dueDate)];
-      const phaseStartDate = allDates.length > 0 
-        ? allDates.reduce((earliest, current) => current < earliest ? current : earliest)
-        : isPreplanningPhase ? currentBusinessDate : startDate;
-
-      return {
-        ...phase,
-        tempId: `phase-${tempId}-${phase.title.toLowerCase().replace(/\s+/g, '-')}`,
-        startDate: phaseStartDate,
-        tasks,
-        materials,
-        notes: []
-      };
-    });
-
+      }
+    );
+    
     setPhases(processedPhases);
     setShowNewJobCard(true);
-    
   } catch (error) {
-    console.error('Error loading job template:', error);
+    console.error("Error loading job template:", error);
   }
 };
 
 export const handlePhaseUpdate = (
   updatedPhase: FormPhase,
-  setPhases: (fn: (prevPhases: FormPhase[]) => FormPhase[]) => void
+  setPhases: (fn: (prevPhases: FormPhase[]) => FormPhase[]) => void,
+  extend?: number,
+  extendFuturePhases?: boolean
 ) => {
-  setPhases((prevPhases) =>
-    prevPhases.map((phase) =>
-      phase.tempId === updatedPhase.tempId ? updatedPhase : phase
-    )
-  );
+  setPhases((prevPhases) => {
+    const phaseIndex = prevPhases.findIndex(p => p.tempId === updatedPhase.tempId);
+    let newPhases = [...prevPhases];
+    
+    // Calculate new phase start date
+    const newStartDate = calculatePhaseStartDate(updatedPhase, false, '', updatedPhase.startDate);
+    
+    // Update the current phase with new start date
+    newPhases[phaseIndex] = {
+      ...updatedPhase,
+      startDate: newStartDate
+    };
+    
+    // Handle extending future phases
+    if (extend && extendFuturePhases) {
+      for (let i = phaseIndex + 1; i < newPhases.length; i++) {
+        const phase = newPhases[i];
+        
+        const extendedStartDate = formatToDateString(
+          addBusinessDays(createLocalDate(phase.startDate), extend)
+        );
+        
+        const updatedTasks = phase.tasks.map(task => ({
+          ...task,
+          startDate: formatToDateString(
+            addBusinessDays(createLocalDate(task.startDate), extend)
+          )
+        }));
+        
+        const updatedMaterials = phase.materials.map(material => ({
+          ...material,
+          dueDate: formatToDateString(
+            addBusinessDays(createLocalDate(material.dueDate), extend)
+          )
+        }));
+        
+        newPhases[i] = {
+          ...phase,
+          startDate: extendedStartDate,
+          tasks: updatedTasks,
+          materials: updatedMaterials
+        };
+      }
+    }
+    
+    return newPhases;
+  });
 };

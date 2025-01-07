@@ -2,9 +2,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import ContactCard from "@/components/util/ContactCard";
+import EditUserModal from "@/components/contact/EditUserModal";
+import ContactCard from "@/components/contact/ContactCard";
+import InviteModal from "@/components/contact/InviteModal";
 import { User } from "@/app/types/database";
-import { fetchUsers } from "@/app/api_utils/api";
 
 type FilterType = "all" | "workers" | "clients";
 
@@ -14,11 +15,15 @@ export default function ContactsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadUsers() {
       try {
-        const data = await fetchUsers();
+        const response = await fetch("/api/users");
+        if (!response.ok) throw new Error("Failed to load contacts");
+        const data = await response.json();
         setUsers(data);
       } catch (err) {
         console.error("Error loading users:", err);
@@ -81,25 +86,31 @@ export default function ContactsPage() {
       <header className="sticky top-0 z-10 transition-all bg-white dark:bg-zinc-900">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-3">
-            <h1 className="text-3xl font-bold">Contacts</h1>
-            <div className="flex gap-2">
-              {(["all", "workers", "clients"] as FilterType[]).map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`px-4 py-2 rounded-md font-medium transition-colors 
-                    ${
-                      activeFilter === filter
-                        ? "bg-blue-500 text-white"
-                        : "bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                    }`}
-                >
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                </button>
-              ))}
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold">Contacts</h1>
+              <select
+                value={activeFilter}
+                onChange={(e) => setActiveFilter(e.target.value as FilterType)}
+                className="px-4 py-2 rounded-md font-medium border border-zinc-300 
+          dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:outline-none 
+          focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="workers">Workers</option>
+                <option value="clients">Clients</option>
+              </select>
             </div>
+
+            <button
+              onClick={() => setIsInviteModalOpen(true)}
+              className="px-4 py-2 bg-blue-500 text-white font-medium rounded-md 
+        hover:bg-blue-600 transition-colors"
+            >
+              Invite
+            </button>
           </div>
 
+          {/* Rest of the search input remains the same */}
           <div className="mb-4">
             <input
               type="text"
@@ -107,8 +118,8 @@ export default function ContactsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md 
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 
-                         bg-white dark:bg-zinc-800"
+                 focus:outline-none focus:ring-2 focus:ring-blue-500 
+                 bg-white dark:bg-zinc-800"
             />
           </div>
         </div>
@@ -123,20 +134,49 @@ export default function ContactsPage() {
           ) : (
             <div className="space-y-4">
               {filteredUsers.map((user) => (
-                <ContactCard
+                <div
                   key={user.user_id}
-                  user_id={user.user_id}
-                  user_first_name={user.user_first_name}
-                  user_last_name={user.user_last_name}
-                  user_email={user.user_email}
-                  user_phone={user.user_phone || ""}
-                  showCheckbox={false}
-                />
+                  onClick={() => setSelectedUser(user)}
+                  className="cursor-pointer transition-all rounded-lg
+                    hover:bg-blue-50 dark:hover:bg-blue-900/20
+                    hover:shadow-md dark:hover:shadow-zinc-900
+                    hover:scale-[1.01]
+                    hover:border-blue-200 dark:hover:border-blue-800
+                    border border-transparent
+                    transform-gpu"
+                >
+                  <ContactCard
+                    user_id={user.user_id}
+                    user_first_name={user.user_first_name}
+                    user_last_name={user.user_last_name}
+                    user_email={user.user_email}
+                    user_phone={user.user_phone || ""}
+                    showCheckbox={false}
+                  />
+                </div>
               ))}
             </div>
           )}
         </div>
       </main>
+
+      <EditUserModal
+        isOpen={!!selectedUser}
+        onClose={() => setSelectedUser(null)}
+        user={selectedUser}
+        onUserUpdated={(updatedUser) => {
+          setUsers(
+            users.map((u) =>
+              u.user_id === updatedUser.user_id ? updatedUser : u
+            )
+          );
+          setSelectedUser(null);
+        }}
+      />
+      <InviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
     </div>
   );
 }

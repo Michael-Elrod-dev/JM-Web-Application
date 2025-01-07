@@ -1,6 +1,6 @@
 // components/ContactCard.tsx
 import React from 'react';
-import CardFrame from './CardFrame';
+import CardFrame from '../util/CardFrame';
 import { formatPhoneNumber } from '../../app/utils';
 import { ContactCardProps } from '../../app/types/props';
 

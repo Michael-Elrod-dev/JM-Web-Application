@@ -2,35 +2,12 @@
 import { NextResponse } from "next/server";
 import pool from "@/app/lib/db";
 import { Job, Phase, Task, Material } from "../../types/database";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { RowDataPacket } from "mysql2";
 
 interface JobRow extends Job, RowDataPacket {}
 interface PhaseRow extends Phase, RowDataPacket {}
 interface TaskRow extends Task, RowDataPacket {}
 interface MaterialRow extends Material, RowDataPacket {}
-
-interface CalendarQueryRow extends RowDataPacket {
-  // Job fields
-  job_id: number;
-  job_title: string;
-  job_startdate: Date;
-  // Phase fields
-  phase_id: number;
-  phase_title: string;
-  phase_startdate: Date;
-  phase_description: string | null;
-  // Task fields
-  task_id: number;
-  task_title: string;
-  task_startdate: Date;
-  task_duration: number;
-  task_status: string;
-  // Material fields
-  material_id: number;
-  material_title: string;
-  material_duedate: Date;
-  material_status: string;
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

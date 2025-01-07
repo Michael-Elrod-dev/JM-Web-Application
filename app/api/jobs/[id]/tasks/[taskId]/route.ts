@@ -27,7 +27,7 @@ export async function PATCH(
 
     await connection.beginTransaction();
 
-    // Verify task belongs to this job (existing code)
+    // Verify task belongs to this job
     const [taskCheck] = await connection.query<RowDataPacket[]>(
       `SELECT t.task_id 
        FROM task t
@@ -43,7 +43,7 @@ export async function PATCH(
       );
     }
 
-    // Handle basic updates (existing code)
+    // Handle basic updates
     if (body.task_title) {
       await connection.query(
         'UPDATE task SET task_title = ? WHERE task_id = ?',
@@ -76,10 +76,10 @@ export async function PATCH(
       const currentUserIds = new Set(currentUsers.map(u => u.user_id));
       const newUserIds = new Set(body.new_users);
       
-      // Users to remove (in current but not in new)
+      // Users to remove
       const usersToRemove = Array.from(currentUserIds).filter(id => !newUserIds.has(id));
       
-      // Users to add (in new but not in current)
+      // Users to add
       const usersToAdd = Array.from(newUserIds).filter(id => !currentUserIds.has(id));
 
       // Verify all new users exist

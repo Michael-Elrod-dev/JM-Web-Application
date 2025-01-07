@@ -6,10 +6,16 @@ import CardFrame from "../util/CardFrame";
 import TaskCard from "./NewTaskCard";
 import MaterialCard from "./NewMaterialCard";
 import NoteCard from "./NewNoteCard";
+import EditPhaseModal from "./EditPhaseModal";
 import { UserView } from "../../app/types/views";
 import { PhaseCardProps } from "../../app/types/props";
 import { FormTask, FormMaterial, FormNote } from "@/app/types/database";
-
+import { formatDate } from "@/app/utils";
+import {
+  createLocalDate,
+  formatToDateString,
+  addBusinessDays,
+} from "@/app/utils";
 import {
   handleTitleClick,
   handleTitleBlur,
@@ -41,6 +47,67 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [showAddButton, setShowAddButton] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const handlePhaseModalUpdate = (updates: {
+    title: string;
+    startDate: string;
+    extend: number;
+    extendFuturePhases: boolean;
+    adjustItems?: boolean;
+    daysDiff?: number;
+  }) => {
+    let updatedTasks = [...phase.tasks];
+    let updatedMaterials = [...phase.materials];
+  
+    if (updates.adjustItems && typeof updates.daysDiff === "number") {
+      if (updates.extend > 0) {
+        // Update current phase
+        updatedTasks = phase.tasks.map((task) => ({
+          ...task,
+          duration: (parseInt(task.duration) + updates.extend).toString()
+        }));
+  
+        updatedMaterials = phase.materials.map((material) => {
+          const materialDate = createLocalDate(material.dueDate);
+          return {
+            ...material,
+            dueDate: formatToDateString(
+              addBusinessDays(materialDate, updates.extend)
+            )
+          };
+        });
+      } else {
+        // Handle normal date changes (no extension)
+        updatedTasks = phase.tasks.map((task) => ({
+          ...task,
+          startDate: formatToDateString(
+            addBusinessDays(createLocalDate(task.startDate), updates.daysDiff!)
+          )
+        }));
+  
+        updatedMaterials = phase.materials.map((material) => ({
+          ...material,
+          dueDate: formatToDateString(
+            addBusinessDays(createLocalDate(material.dueDate), updates.daysDiff!)
+          )
+        }));
+      }
+    }
+  
+    const updatedPhase = {
+      ...phase,
+      title: updates.title,
+      startDate: updates.startDate,
+      tasks: updatedTasks,
+      materials: updatedMaterials,
+      notes: [...phase.notes],
+      description: phase.description,
+      tempId: phase.tempId
+    };
+  
+    onUpdate(updatedPhase, updates.extend, updates.extendFuturePhases);
+  };
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -118,60 +185,71 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
         <CardFrame>
           {/* Title and Description Section */}
           <div className="flex justify-between items-center mb-4">
-            <div className="flex-1">
-              {isEditingTitle ? (
-                <input
-                  type="text"
-                  value={phase.title}
-                  onChange={(e) =>
-                    handleInputChange("title", e.target.value, phase, onUpdate)
-                  }
-                  onBlur={() => handleTitleBlur(setIsEditingTitle)}
-                  onKeyDown={(e) => handleTitleKeyDown(e, setIsEditingTitle)}
-                  autoFocus
-                  className="text-2xl font-bold bg-transparent border-b border-zinc-300 dark:border-zinc-600 focus:outline-none focus:border-blue-500"
-                />
-              ) : (
-                <h2
-                  className="text-2xl font-bold cursor-text"
-                  onClick={() =>
-                    handleTitleClick(isPhaseCollapsed, setIsEditingTitle)
-                  }
-                >
-                  {phase.title}
-                </h2>
-              )}
-            </div>
-            <div className="flex items-center gap-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-700 dark:text-white mr-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={phase.startDate}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "startDate",
-                      e.target.value,
-                      phase,
-                      onUpdate
-                    )
-                  }
-                  min={jobStartDate}
-                  className="p-2 border rounded-md shadow-sm dark:bg-zinc-800 dark:text-white dark:border-zinc-600 border-zinc-300"
-                />
-              </div>
-              <button
-                onClick={() => setIsPhaseCollapsed(!isPhaseCollapsed)}
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
-              >
-                {isPhaseCollapsed ? (
-                  <FaChevronUp size={20} />
+            <div className="grid grid-cols-3 items-center w-full">
+              <div className="flex-1 col-span-1">
+                {isEditingTitle ? (
+                  <input
+                    type="text"
+                    value={phase.title}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "title",
+                        e.target.value,
+                        phase,
+                        onUpdate
+                      )
+                    }
+                    onBlur={() => handleTitleBlur(setIsEditingTitle)}
+                    onKeyDown={(e) => handleTitleKeyDown(e, setIsEditingTitle)}
+                    autoFocus
+                    className="text-2xl font-bold bg-transparent border-b border-zinc-300 dark:border-zinc-600 focus:outline-none focus:border-blue-500"
+                  />
                 ) : (
-                  <FaChevronDown size={20} />
+                  <h2
+                    className="text-2xl font-bold cursor-text"
+                    onClick={() =>
+                      handleTitleClick(isPhaseCollapsed, setIsEditingTitle)
+                    }
+                  >
+                    {phase.title}
+                  </h2>
                 )}
-              </button>
+              </div>
+              <span className="text-md text-center col-span-1">
+                {(() => {
+                  return formatDate(phase.startDate);
+                })()}
+              </span>
+              <div className="flex items-center justify-end gap-4 col-span-1">
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setIsPhaseCollapsed(!isPhaseCollapsed)}
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                >
+                  {isPhaseCollapsed ? (
+                    <FaChevronUp size={20} />
+                  ) : (
+                    <FaChevronDown size={20} />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -225,9 +303,21 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
                         <TaskCard
                           key={task.id}
                           task={task}
-                          onUpdate={(updatedTask) =>
-                            updateTask(updatedTask, phase, onUpdate)
-                          }
+                          onUpdate={(updatedTask) => {
+                            const updatedTasks = phase.tasks
+                              .map((t) =>
+                                t.id === updatedTask.id ? updatedTask : t
+                              )
+                              .sort(
+                                (a, b) =>
+                                  new Date(a.startDate).getTime() -
+                                  new Date(b.startDate).getTime()
+                              );
+                            onUpdate({
+                              ...phase,
+                              tasks: updatedTasks,
+                            });
+                          }}
                           onDelete={() =>
                             deleteTask(
                               task.id,
@@ -238,6 +328,8 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
                           }
                           phaseStartDate={phase.startDate}
                           contacts={contacts}
+                          phase={phase}
+                          onPhaseUpdate={onUpdate}
                         />
                       ))}
 
@@ -265,8 +357,6 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
                             ...phase,
                             tasks: updatedTasks,
                           });
-
-                          // Add scroll behavior
                           setTimeout(() => {
                             const element = document.getElementById(
                               `task-${newTask.id}`
@@ -328,9 +418,23 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
                         <MaterialCard
                           key={material.id}
                           material={material}
-                          onUpdate={(updatedMaterial) =>
-                            updateMaterial(updatedMaterial, phase, onUpdate)
-                          }
+                          onUpdate={(updatedMaterial) => {
+                            const updatedMaterials = phase.materials
+                              .map((m) =>
+                                m.id === updatedMaterial.id
+                                  ? updatedMaterial
+                                  : m
+                              )
+                              .sort(
+                                (a, b) =>
+                                  new Date(a.dueDate).getTime() -
+                                  new Date(b.dueDate).getTime()
+                              );
+                            onUpdate({
+                              ...phase,
+                              materials: updatedMaterials,
+                            });
+                          }}
                           onDelete={() =>
                             deleteMaterial(
                               material.id,
@@ -341,6 +445,8 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
                           }
                           phaseStartDate={phase.startDate}
                           contacts={contacts}
+                          phase={phase}
+                          onPhaseUpdate={onUpdate}
                         />
                       ))}
 
@@ -370,8 +476,6 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
                             ...phase,
                             materials: updatedMaterials,
                           });
-
-                          // Add scroll behavior
                           setTimeout(() => {
                             const element = document.getElementById(
                               `material-${newMaterial.id}`
@@ -503,6 +607,15 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
           </button>
         </div>
       </div>
+
+      <EditPhaseModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialTitle={phase.title}
+        initialStartDate={phase.startDate}
+        jobStartDate={jobStartDate}
+        onUpdate={handlePhaseModalUpdate}
+      />
     </div>
   );
 };

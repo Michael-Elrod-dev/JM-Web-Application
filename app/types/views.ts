@@ -35,6 +35,7 @@ export interface PhaseView {
 
 export interface TaskView {
   task_id: number;
+  phase_id: number;
   task_title: string;
   task_startdate: string;
   task_duration: number;
@@ -45,6 +46,7 @@ export interface TaskView {
 
 export interface MaterialView {
   material_id: number;
+  phase_id: number;
   material_title: string;
   material_duedate: string;
   material_status: string;

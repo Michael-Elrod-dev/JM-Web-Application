@@ -7,64 +7,9 @@ import Note from "./NoteCard";
 import TasksCard from "./TasksCard";
 import MaterialsCard from "./MaterialsCard";
 import SmallCardFrame from "../util/SmallCardFrame";
-import { UserView } from "@/app/types/views";
 import NewTaskCard from "../new/NewTaskCard";
 import NewMaterialCard from "../new/NewMaterialCard";
-import { FormTask, FormMaterial } from "@/app/types/database";
-
-export interface DetailPhaseCardProps {
-  phase: {
-    phase_id: number;
-    name: string;
-    startDate: string;
-    endDate: string;
-    tasks: {
-      task_id: number;
-      task_title: string;
-      task_startdate: string;
-      task_duration: number;
-      task_status: string;
-      task_description: string;
-      users: {
-        user_id: number;
-        first_name: string;
-        last_name: string;
-        user_email: string;
-        user_phone: string;
-      }[];
-    }[];
-    materials: {
-      material_id: number;
-      material_title: string;
-      material_duedate: string;
-      material_status: string;
-      material_description: string;
-      users: {
-        user_id: number;
-        first_name: string;
-        last_name: string;
-        user_email: string;
-        user_phone: string;
-      }[];
-    }[];
-    notes: any[];
-  };
-  phaseNumber: number;
-  showTasks: boolean;
-  showMaterials: boolean;
-  contacts: UserView[];
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
-  onStatusUpdate: (
-    id: number,
-    type: "task" | "material",
-    newStatus: string
-  ) => void;
-  onTaskDelete: (taskId: number) => Promise<void>;
-  onMaterialDelete: (materialId: number) => Promise<void>;
-  onTaskCreate: (phaseId: number, task: FormTask) => Promise<any>;
-  onMaterialCreate: (phaseId: number, material: FormMaterial) => Promise<any>;
-}
+import { DetailPhaseCardProps } from "@/app/types/props";
 
 const PhaseCard: React.FC<DetailPhaseCardProps> = ({
   phase,

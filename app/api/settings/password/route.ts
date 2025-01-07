@@ -6,30 +6,25 @@ import { compare, hash } from "bcryptjs";
 import pool from "@/app/lib/db";
 
 export async function POST(request: Request) {
+  const connection = await pool.getConnection();
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { currentPassword, newPassword } = await request.json();
 
     // Get current user from database
-    const [rows] = await pool.execute(
+    const [rows] = await connection.execute(
       "SELECT password FROM app_user WHERE user_id = ?",
       [session.user.id]
     );
 
     const user = (rows as any[])[0];
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Verify current password
@@ -45,7 +40,7 @@ export async function POST(request: Request) {
     const hashedPassword = await hash(newPassword, 12);
 
     // Update password in database
-    await pool.execute(
+    await connection.execute(
       "UPDATE app_user SET password = ? WHERE user_id = ?",
       [hashedPassword, session.user.id]
     );
@@ -60,5 +55,7 @@ export async function POST(request: Request) {
       { error: "Failed to update password" },
       { status: 500 }
     );
+  } finally {
+    connection.release();
   }
 }

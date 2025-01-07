@@ -64,3 +64,15 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
 .fc-event {
   cursor: pointer !important;
 }
+
+.fc-more-popover {
+  z-index: 999 !important; /* Ensure the popover isn't too high */
+}
+
+.modal-overlay {
+  z-index: 10000 !important; /* Modal overlay should always be higher */
+}
+
+.modal-content {
+  z-index: 10001 !important; /* Modal content should be above the overlay */
+}

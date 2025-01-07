@@ -338,48 +338,7 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       details: "Pour garage slabs",
       isExpanded: false,
       selectedContacts: []
-    }
-  ],
-  materials: [],
-  notes: []
- };
-
- const FRAMING_PHASE: FormPhase = {
-  tempId: "",
-  title: "Framing",
-  startDate: "",
-  description: "Framing construction and material ordering",
-  tasks: [
-    { 
-      id: "", 
-      title: "Frame house", 
-      startDate: "", 
-      duration: "4",
-      offset: 8,
-      details: "Complete house framing",
-      isExpanded: false,
-      selectedContacts: []
     },
-    { 
-      id: "", 
-      title: "Blocks painted (if needed)", 
-      startDate: "", 
-      duration: "1",
-      offset: 12,
-      details: "Paint foundation blocks",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Termite spray", 
-      startDate: "", 
-      duration: "1",
-      offset: 31,
-      details: "Apply termite treatment",
-      isExpanded: false,
-      selectedContacts: []
-    }
   ],
   materials: [
     { 
@@ -408,7 +367,39 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       details: "Delivery of roof trusses",
       isExpanded: false,
       selectedContacts: []
+    }
+  ],
+  notes: []
+ };
+
+ const FRAMING_PHASE: FormPhase = {
+  tempId: "",
+  title: "Framing",
+  startDate: "",
+  description: "Framing construction and material ordering",
+  tasks: [
+    { 
+      id: "", 
+      title: "Frame house", 
+      startDate: "", 
+      duration: "4",
+      offset: 8,
+      details: "Complete house framing",
+      isExpanded: false,
+      selectedContacts: []
     },
+    { 
+      id: "", 
+      title: "Blocks painted (if needed)", 
+      startDate: "", 
+      duration: "1",
+      offset: 12,
+      details: "Paint foundation blocks",
+      isExpanded: false,
+      selectedContacts: []
+    }
+  ],
+  materials: [
     { 
       id: "", 
       title: "Deliver windows/exterior doors", 
@@ -465,15 +456,6 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
     },
     { 
       id: "", 
-      title: "Counter tops", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order counter tops",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
       title: "Kitchen sink", 
       dueDate: "",
       offset: 10, // 2 weeks * 5 days
@@ -481,24 +463,7 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       isExpanded: false,
       selectedContacts: []
     },
-    { 
-      id: "", 
-      title: "Garage Door (if needed)", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order garage door",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Trim Material", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order trim materials",
-      isExpanded: false,
-      selectedContacts: []
-    },
+
     { 
       id: "", 
       title: "Hand rail (if needed)", 
@@ -514,15 +479,6 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       dueDate: "",
       offset: 10, // 2 weeks * 5 days
       details: "Order specialty items",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Water heater", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order water heater",
       isExpanded: false,
       selectedContacts: []
     },
@@ -550,96 +506,6 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       dueDate: "",
       offset: 10, // 2 weeks * 5 days
       details: "Order tub and shower faucets",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Toilets", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order toilets",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Light fixtures", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order light fixtures",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Ceiling Fans", 
-      dueDate: "",
-      offset: 25, // 5 weeks * 5 days
-      details: "Order ceiling fans",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Vanity Lights", 
-      dueDate: "",
-      offset: 30, // 6 weeks * 5 days
-      details: "Order vanity lights",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Porch Light Front", 
-      dueDate: "",
-      offset: 35, // 7 weeks * 5 days
-      details: "Order front porch light",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Porch Light Motion", 
-      dueDate: "",
-      offset: 40, // 8 weeks * 5 days
-      details: "Order motion sensor porch light",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Bathroom Kits", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order bathroom accessory kits",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Vanity Mirrors", 
-      dueDate: "",
-      offset: 25, // 5 weeks * 5 days
-      details: "Order vanity mirrors",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Mirrors", 
-      dueDate: "",
-      offset: 30, // 6 weeks * 5 days
-      details: "Order additional mirrors",
-      isExpanded: false,
-      selectedContacts: []
-    },
-    { 
-      id: "", 
-      title: "Sheetrock", 
-      dueDate: "",
-      offset: 20, // 4 weeks * 5 days
-      details: "Order sheetrock materials",
       isExpanded: false,
       selectedContacts: []
     },
@@ -775,6 +641,78 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
     },
     { 
       id: "", 
+      title: "Garage Door (if needed)", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order garage door",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Trim Material", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order trim materials",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Counter tops", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order counter tops",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Sheetrock", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order sheetrock materials",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Water heater", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order water heater",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Toilets", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order toilets",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Light fixtures", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order light fixtures",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Bathroom Kits", 
+      dueDate: "",
+      offset: 20, // 4 weeks * 5 days
+      details: "Order bathroom accessory kits",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
       title: "Deliver sheetrock", 
       dueDate: "",
       offset: 21,
@@ -809,6 +747,16 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       duration: "3",
       offset: 29,
       details: "Install trim throughout",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Termite spray", 
+      startDate: "", 
+      duration: "1",
+      offset: 31,
+      details: "Apply termite treatment",
       isExpanded: false,
       selectedContacts: []
     },
@@ -964,6 +912,60 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
     }
   ],
   materials: [
+    { 
+      id: "", 
+      title: "Ceiling Fans", 
+      dueDate: "",
+      offset: 25, // 5 weeks * 5 days
+      details: "Order ceiling fans",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Vanity Lights", 
+      dueDate: "",
+      offset: 30, // 6 weeks * 5 days
+      details: "Order vanity lights",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Porch Light Front", 
+      dueDate: "",
+      offset: 35, // 7 weeks * 5 days
+      details: "Order front porch light",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Porch Light Motion", 
+      dueDate: "",
+      offset: 40, // 8 weeks * 5 days
+      details: "Order motion sensor porch light",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Vanity Mirrors", 
+      dueDate: "",
+      offset: 25, // 5 weeks * 5 days
+      details: "Order vanity mirrors",
+      isExpanded: false,
+      selectedContacts: []
+    },
+    { 
+      id: "", 
+      title: "Mirrors", 
+      dueDate: "",
+      offset: 30, // 6 weeks * 5 days
+      details: "Order additional mirrors",
+      isExpanded: false,
+      selectedContacts: []
+    },
     { 
       id: "", 
       title: "Deliver trim package/doors", 
