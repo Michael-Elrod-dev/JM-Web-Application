@@ -254,7 +254,7 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       title: "Dig Footers & Pour Concrete", 
       startDate: "", 
       duration: "2",
-      offset: 1,
+      offset: 0,
       details: "Excavate footers and pour concrete foundation",
       isExpanded: false,
       selectedContacts: []

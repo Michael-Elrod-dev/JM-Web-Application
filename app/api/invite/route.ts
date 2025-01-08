@@ -47,7 +47,7 @@ export async function GET() {
   }
 }
 
-// POST to generate new invite code
+// POST to update invite code
 export async function POST() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -68,9 +68,9 @@ export async function POST() {
       .join('')
       .toUpperCase();
 
-    // Insert new code
+    // Update existing code
     await connection.execute(
-      'INSERT INTO invite_code (code, updated_by) VALUES (?, ?)',
+      'UPDATE invite_code SET code = ?, updated_by = ?',
       [newCode, session.user.id]
     );
 

@@ -47,10 +47,15 @@ export const handleConfirmDelete = (
   onPhaseUpdate: (phase: FormPhase) => void
 ) => {
   onDelete();
-  setShowDeleteConfirm(false);
   
-  // Update phase after deletion using existing handlePhaseUpdate
-  onPhaseUpdate(phase);
+  const updatedPhase = {
+    ...phase,
+    tasks: [...phase.tasks],
+    materials: [...phase.materials],
+  };
+  
+  setShowDeleteConfirm(false);
+  onPhaseUpdate(updatedPhase);
 };
 
 export const handleCreateJob = async (
@@ -69,7 +74,9 @@ export const handleCreateJob = async (
 
     const tempId = Date.now().toString();
     const currentDate = new Date();
-    const currentBusinessDate = formatToDateString(getCurrentBusinessDate(currentDate));
+    const localCurrentBusinessDate = getCurrentBusinessDate(currentDate);
+    const currentBusinessDate = formatToDateString(localCurrentBusinessDate);
+    console.log("Initial currentBusinessDate string:", currentBusinessDate);
 
     const processedPhases: FormPhase[] = phases.map(
       (phase: FormPhase, phaseIndex: number) => {
@@ -78,7 +85,7 @@ export const handleCreateJob = async (
         const tasks = phase.tasks.map((task: FormTask, taskIndex: number) => {
           let baseDate = isPreplanningPhase
             ? task.offset === 0
-              ? getCurrentBusinessDate(new Date(currentBusinessDate))
+              ? localCurrentBusinessDate
               : createLocalDate(startDate)
             : createLocalDate(startDate);
 
@@ -86,6 +93,9 @@ export const handleCreateJob = async (
             task.offset === 0
               ? baseDate
               : addBusinessDays(baseDate, task.offset);
+              console.log("For task:", task.title);
+              console.log("Input date:", new Date(currentBusinessDate).toString());
+              console.log("Result date:", taskStartDate.toString());
 
           return {
             ...task,
@@ -100,7 +110,7 @@ export const handleCreateJob = async (
           (material: FormMaterial, materialIndex: number) => {
             let baseDate = isPreplanningPhase
               ? material.offset === 0
-                ? getCurrentBusinessDate(new Date(currentBusinessDate))
+                ? localCurrentBusinessDate  
                 : createLocalDate(startDate)
               : createLocalDate(startDate);
 
@@ -128,7 +138,7 @@ export const handleCreateJob = async (
         return {
           ...phaseWithItems,
           tempId: `phase-${tempId}-${phase.title.toLowerCase().replace(/\s+/g, "-")}`,
-          startDate: calculatePhaseStartDate(phaseWithItems, isPreplanningPhase, currentBusinessDate, startDate),
+          startDate: calculatePhaseStartDate(phaseWithItems, isPreplanningPhase, formatToDateString(localCurrentBusinessDate), startDate),
           notes: [],
         };
       }

@@ -85,7 +85,7 @@ export default function TerminateJobModal({
           ) : (
             <>
               <p className="mb-6">
-                Terminating a job will set the job status to "Closed". This will automatically 
+                Terminating a job will set the job status to Closed. This will automatically 
                 complete all tasks and materials and stop any future notifications about this job. 
                 You will still be able to see the job for a limited time under the Closed tab in 
                 the Jobs page if you would like to copy its contents to create a new one.

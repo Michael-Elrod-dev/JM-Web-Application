@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { UserView, PhaseView, TaskView, MaterialView } from "@/app/types/views";
+import { UserView, PhaseView } from "@/app/types/views";
 import { TimelineProps } from "../../app/types/props";
 
 // Type for a single task or material item

@@ -80,3 +80,24 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
 .react-datepicker-popper {
   z-index: 9999 !important;
 }
+
+/* Calendar event styling */
+.fc-daygrid-block-event .fc-event-main {
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.fc-daygrid-dot-event .fc-event-title {
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.fc-event-title {
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.fc-daygrid-block-event .fc-event-main {
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.dark .fc-daygrid-block-event .fc-event-main {
+  color: white !important;
+}

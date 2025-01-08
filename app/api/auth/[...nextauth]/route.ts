@@ -3,8 +3,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import pool from "@/app/lib/db";
 
-const AUTHENTICATED_USER_TYPES = ["Owner", "Admin", "User"];
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({

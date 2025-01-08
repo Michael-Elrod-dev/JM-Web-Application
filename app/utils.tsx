@@ -1,3 +1,7 @@
+export const isEmailValid = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 export const formatPhoneNumber = (phone: string | undefined): string => {
   if (!phone) return "";
   const cleaned = phone.replace(/\D/g, "");
@@ -57,24 +61,53 @@ export function formatDate(dateString: string): string {
 }
 
 export const createLocalDate = (dateString: string): Date => {
-  return new Date(`${dateString}T00:00:00`);
-}
+  // Check if it's an ISO timestamp (contains 'T')
+  if (dateString.includes('T')) {
+    const date = new Date(dateString);
+    // Create a new date using just the date portion in local timezone
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      0, 0, 0, 0
+    );
+  }
+  
+  // Original handling for YYYY-MM-DD format
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(
+    year,
+    month - 1,
+    day,
+    0, 0, 0, 0
+  );
+};
 
 export const formatToDateString = (date: Date): string => {
   return date.toLocaleDateString('en-CA');
 }
 
 export const getCurrentBusinessDate = (currentDate: Date): Date => {
-  const localDate = createLocalDate(formatToDateString(currentDate));
-  const day = localDate.getDay();
+  const [year, month, day] = formatToDateString(currentDate).split('-').map(Number);
+  const result = new Date(
+    year,
+    month - 1,
+    day,
+    currentDate.getHours(),
+    currentDate.getMinutes(),
+    currentDate.getSeconds(),
+    currentDate.getMilliseconds()
+  );
 
-  if (day === 0) {
-    localDate.setDate(localDate.getDate() + 1);
-  } else if (day === 6) {
-    localDate.setDate(localDate.getDate() + 2);
+  const dayOfWeek = result.getDay();
+
+  if (dayOfWeek === 0) { // Sunday
+    result.setDate(result.getDate() + 1);
+  } else if (dayOfWeek === 6) { // Saturday
+    result.setDate(result.getDate() + 2);
   }
 
-  return localDate;
+  return result;
 };
 
 export const addBusinessDays = (date: Date, days: number): Date => {
@@ -101,3 +134,17 @@ export const addBusinessDays = (date: Date, days: number): Date => {
   }
   return result;
 };
+
+export function getBusinessDaysBetween(startDate: Date, endDate: Date): number {
+  let count = 0;
+  const curDate = new Date(startDate.getTime());
+  curDate.setDate(curDate.getDate() + 1);
+  
+  while (curDate <= endDate) {
+    const dayOfWeek = curDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+    curDate.setDate(curDate.getDate() + 1);
+  }
+  
+  return count;
+}

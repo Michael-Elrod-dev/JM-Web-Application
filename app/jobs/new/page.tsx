@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import CardFrame from "../../../components/util/CardFrame";
@@ -9,8 +9,15 @@ import NewJobCard from "../../../components/new/NewJobCard";
 import PhaseCard from "../../../components/new/NewPhaseCard";
 import { InvalidItemProp } from "@/app/types/props";
 import { FormPhase, User } from "@/app/types/database";
+import { PhaseView, TaskView, MaterialView } from "../../types/views";
 import { createJob, transformFormDataToNewJob } from "../../../handlers/jobs";
-import { createLocalDate, formatToDateString, formatDate } from "@/app/utils";
+import {
+  createLocalDate,
+  formatToDateString,
+  getBusinessDaysBetween,
+  addBusinessDays,
+  getCurrentBusinessDate,
+} from "@/app/utils";
 import {
   handleCreateJob,
   handlePhaseUpdate,
@@ -18,8 +25,9 @@ import {
 } from "../../../handlers/new/jobs";
 
 export default function NewJobPage() {
-  const router = useRouter();
   type JobType = string;
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const jobTypes = getJobTypes();
   const [jobType, setJobType] = useState<string>("");
   const [phases, setPhases] = useState<FormPhase[]>([]);
@@ -28,6 +36,7 @@ export default function NewJobPage() {
   const [contacts, setContacts] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isCreateJobDisabled = !jobType || !startDate;
+  const [originalJobName, setOriginalJobName] = useState<string>("");
   const [jobDetailsErrors, setJobDetailsErrors] = useState<{
     [key: string]: string;
   }>({});
@@ -37,6 +46,220 @@ export default function NewJobPage() {
     description: "",
     selectedClient: null as { user_id: number } | null,
   });
+
+  useEffect(() => {
+    const isCopyingJob = searchParams.get("copy") === "true";
+
+    if (isCopyingJob) {
+      const jobDataString = localStorage.getItem("jobToCopy");
+      if (jobDataString) {
+        try {
+          const jobData = JSON.parse(jobDataString);
+
+          // Set basic job info
+          setJobType("copy");
+          setStartDate(jobData.newStartDate);
+          setOriginalJobName(jobData.originalJobName);
+          setShowNewJobCard(true);
+          setContacts(jobData.contacts || []);
+
+          // Calculate offsets and new dates
+          const originalStartDate = createLocalDate(
+            jobData.jobDetails.originalStartDate
+          );
+          const newStartDate = createLocalDate(jobData.newStartDate);
+
+          const copiedPhases = jobData.phases.map(
+            (phase: PhaseView, phaseIndex: number) => {
+              const isPreplanningPhase = phaseIndex === 0;
+
+              if (isPreplanningPhase) {
+                // First create tasks and materials for preplanning
+                const newTasks = phase.tasks.map((task: TaskView) => {
+                  const mappedContacts =
+                    task.users?.map((user) => ({
+                      id: user.user_id.toString(),
+                      user_id: user.user_id,
+                      first_name: user.first_name,
+                      last_name: user.last_name,
+                      user_email: user.user_email,
+                      user_phone: user.user_phone || "",
+                    })) || [];
+
+                  if (task.task_title === "One Call Lot") {
+                    return {
+                      id: `task-${Date.now()}-${Math.random()}`,
+                      title: task.task_title,
+                      startDate: formatToDateString(
+                        addBusinessDays(newStartDate, -10)
+                      ),
+                      duration: task.task_duration,
+                      details: task.task_description || "",
+                      selectedContacts: mappedContacts,
+                      isExpanded: false,
+                    };
+                  }
+                  return {
+                    id: `task-${Date.now()}-${Math.random()}`,
+                    title: task.task_title,
+                    startDate: formatToDateString(
+                      getCurrentBusinessDate(new Date())
+                    ),
+                    duration: task.task_duration,
+                    details: task.task_description || "",
+                    selectedContacts: mappedContacts,
+                    isExpanded: false,
+                  };
+                });
+                const newMaterials = phase.materials.map(
+                  (material: MaterialView) => {
+                    const mappedContacts =
+                      material.users?.map((user) => ({
+                        id: user.user_id.toString(),
+                        user_id: user.user_id,
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        user_email: user.user_email,
+                        user_phone: user.user_phone || "",
+                      })) || [];
+
+                    if (
+                      material.material_title ===
+                      "Materials ordered for block work"
+                    ) {
+                      return {
+                        id: `material-${Date.now()}-${Math.random()}`,
+                        title: material.material_title,
+                        dueDate: formatToDateString(
+                          addBusinessDays(newStartDate, -5)
+                        ),
+                        details: material.material_description || "",
+                        selectedContacts: mappedContacts,
+                        isExpanded: false,
+                      };
+                    }
+                    return {
+                      id: `material-${Date.now()}-${Math.random()}`,
+                      title: material.material_title,
+                      dueDate: formatToDateString(
+                        getCurrentBusinessDate(new Date())
+                      ),
+                      details: material.material_description || "",
+                      selectedContacts: mappedContacts,
+                      isExpanded: false,
+                    };
+                  }
+                );
+
+                // Calculate phase start date based on earliest task or material
+                const allDates = [
+                  ...newTasks.map((task) => task.startDate),
+                  ...newMaterials.map((material) => material.dueDate),
+                ];
+
+                const phaseStartDate = allDates.reduce((earliest, current) =>
+                  current < earliest ? current : earliest
+                );
+
+                return {
+                  tempId: `phase-${Date.now()}-${Math.random()}`,
+                  title: phase.name,
+                  description: "",
+                  startDate: phaseStartDate,
+                  tasks: newTasks,
+                  materials: newMaterials,
+                  notes: phase.notes || [],
+                };
+              } else {
+                // Create tasks and materials for regular phases
+                const newTasks = phase.tasks.map((task: TaskView) => {
+                  const taskStartDate = createLocalDate(task.task_startdate);
+                  const taskOffset = getBusinessDaysBetween(
+                    originalStartDate,
+                    taskStartDate
+                  );
+                  const newTaskStartDate = addBusinessDays(
+                    newStartDate,
+                    taskOffset
+                  );
+
+                  const mappedContacts =
+                    task.users?.map((user) => ({
+                      id: user.user_id.toString(),
+                    })) || [];
+
+                  return {
+                    id: `task-${Date.now()}-${Math.random()}`,
+                    title: task.task_title,
+                    startDate: formatToDateString(newTaskStartDate),
+                    duration: task.task_duration,
+                    details: task.task_description || "",
+                    selectedContacts: mappedContacts,
+                    isExpanded: false,
+                  };
+                });
+
+                const newMaterials = phase.materials.map(
+                  (material: MaterialView) => {
+                    const materialDueDate = createLocalDate(
+                      material.material_duedate
+                    );
+                    const materialOffset = getBusinessDaysBetween(
+                      originalStartDate,
+                      materialDueDate
+                    );
+                    const newMaterialDueDate = addBusinessDays(
+                      newStartDate,
+                      materialOffset
+                    );
+
+                    const mappedContacts =
+                      material.users?.map((user) => ({
+                        id: user.user_id.toString(),
+                      })) || [];
+
+                    return {
+                      id: `material-${Date.now()}-${Math.random()}`,
+                      title: material.material_title,
+                      dueDate: formatToDateString(newMaterialDueDate),
+                      details: material.material_description || "",
+                      selectedContacts: mappedContacts,
+                      isExpanded: false,
+                    };
+                  }
+                );
+
+                // Calculate phase start date based on earliest task or material
+                const allDates = [
+                  ...newTasks.map((task) => task.startDate),
+                  ...newMaterials.map((material) => material.dueDate),
+                ];
+
+                const phaseStartDate = allDates.reduce((earliest, current) =>
+                  current < earliest ? current : earliest
+                );
+
+                return {
+                  tempId: `phase-${Date.now()}-${Math.random()}`,
+                  title: phase.name,
+                  description: "",
+                  startDate: phaseStartDate,
+                  tasks: newTasks,
+                  materials: newMaterials,
+                  notes: phase.notes || [],
+                };
+              }
+            }
+          );
+
+          setPhases(copiedPhases);
+          localStorage.removeItem("jobToCopy");
+        } catch (error) {
+          console.error("Error parsing job data:", error);
+        }
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -54,7 +277,10 @@ export default function NewJobPage() {
     fetchContacts();
   }, []);
 
-  const handleMovePhase = (index: number, direction: "up" | "down" | "future") => {
+  const handleMovePhase = (
+    index: number,
+    direction: "up" | "down" | "future"
+  ) => {
     const newPhases = [...phases];
     if (direction === "up" && index > 0) {
       [newPhases[index], newPhases[index - 1]] = [
@@ -298,6 +524,7 @@ export default function NewJobPage() {
                     const day = date.getDay();
                     return day !== 0 && day !== 6;
                   }}
+                  minDate={new Date()}
                   dateFormat="MM/dd/yyyy"
                   placeholderText="Choose Start Date"
                   className="mt-1 w-full border rounded-md shadow-sm p-2 text-zinc-700 dark:text-white border-zinc-300 dark:bg-zinc-800 dark:border-zinc-600 h-[44px] appearance-none placeholder:text-zinc-700 dark:placeholder:text-white"
@@ -333,15 +560,11 @@ export default function NewJobPage() {
         <>
           <div className="flex items-center gap-4 mb-4">
             <h2 className="text-2xl font-bold">
-              Job Type -{" "}
-              {jobType
-                .split("-")
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(" ")}
+              {jobType === "copy"
+                ? `Copy of ${originalJobName}`
+                : `Job Type - ${jobType}`}
             </h2>
-            <span className="text-lg text-gray-600">
-              {formatDate(startDate)}
-            </span>
+            <span className="text-lg text-gray-600">{startDate}</span>
           </div>
 
           <NewJobCard
@@ -414,8 +637,13 @@ export default function NewJobPage() {
                     setPhases(newPhases);
                   }}
                   jobStartDate={startDate}
-                  onUpdate={(updatedPhase, extend, extendFuturePhases) => 
-                    handlePhaseUpdate(updatedPhase, setPhases, extend, extendFuturePhases)
+                  onUpdate={(updatedPhase, extend, extendFuturePhases) =>
+                    handlePhaseUpdate(
+                      updatedPhase,
+                      setPhases,
+                      extend,
+                      extendFuturePhases
+                    )
                   }
                   onAddPhaseAfter={(phaseId) => {
                     const newPhase = {

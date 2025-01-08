@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import EditUserModal from "@/components/contact/EditUserModal";
 import ContactCard from "@/components/contact/ContactCard";
 import InviteModal from "@/components/contact/InviteModal";
@@ -10,6 +11,7 @@ import { User } from "@/app/types/database";
 type FilterType = "all" | "workers" | "clients";
 
 export default function ContactsPage() {
+  const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -164,12 +166,17 @@ export default function ContactsPage() {
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
         user={selectedUser}
+        currentUserId={session?.user?.id}
         onUserUpdated={(updatedUser) => {
           setUsers(
             users.map((u) =>
               u.user_id === updatedUser.user_id ? updatedUser : u
             )
           );
+          setSelectedUser(null);
+        }}
+        onUserDeleted={() => {
+          setUsers(users.filter((u) => u.user_id !== selectedUser?.user_id));
           setSelectedUser(null);
         }}
       />

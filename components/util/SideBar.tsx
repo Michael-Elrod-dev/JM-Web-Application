@@ -12,16 +12,7 @@ const SideBar = () => {
 
   return (
     <nav className="fixed left-0 top-0 w-12 h-screen p-4 flex flex-col items-center justify-between bg-zinc-800 transition-colors duration-200">
-      <div className="flex flex-col items-center space-y-8">
-        <div className="mb-4">
-          <Image
-            src="/logo.png"
-            alt="Logo"
-            width={32}
-            height={32}
-            className="w-16 h-8"
-          />
-        </div>
+      <div className="flex flex-col items-center space-y-8 pt-10">
         <ul className="space-y-8">
           <li>
             <Link href="/jobs" className="text-zinc-300 hover:text-white">

@@ -56,13 +56,6 @@ export default function EditPhaseModal({
   
       const totalDaysDiff = daysDiff + extend;
   
-      console.log('Modal Update:', {
-        startDate,
-        initialStartDate,
-        daysDiff: totalDaysDiff,
-        adjustItems: startDate !== initialStartDate || extend > 0
-      });
-  
       onUpdate({
         title: title.trim() || initialTitle,
         startDate: startDate || initialStartDate,

@@ -1,7 +1,7 @@
 // handlers/new/tasks.ts
 import { FormTask,FormPhase } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
-import { calculateEndDate, createLocalDate } from "@/app/utils";
+import { calculateEndDate, createLocalDate, formatToDateString } from "@/app/utils";
 import { handleConfirmDelete } from "./jobs";
 
 export const updateTask = (updatedTask: FormTask, phase: FormPhase, onUpdate: (phase: FormPhase) => void) => {
@@ -18,12 +18,20 @@ export const updateTask = (updatedTask: FormTask, phase: FormPhase, onUpdate: (p
 };
 
 export const handleStartDateChange = (
-  newStartDate: string,
+  date: Date | null,
   phaseStartDate: string,
   setLocalTask: React.Dispatch<React.SetStateAction<FormTask>>,
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>
 ) => {
-  if (newStartDate >= phaseStartDate) {
+  // First convert the selected date to local date string
+  const newStartDate = date ? formatToDateString(date) : '';
+  
+  // Create Date objects for comparison, setting time to midnight
+  const selectedDate = date ? new Date(date.setHours(0,0,0,0)) : null;
+  const phaseStart = new Date(phaseStartDate);
+  phaseStart.setHours(0,0,0,0);
+
+  if (selectedDate && selectedDate >= phaseStart) {
     setLocalTask((prev) => ({
       ...prev,
       startDate: newStartDate,
@@ -81,22 +89,38 @@ export const handleContactRemove = (
   );
 };
 
-export const handleDeleteClick = (
-  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>,
+export const handleDeleteConfirm = (
+  taskId: string,
   onDelete: () => void,
-  phase: FormPhase,
-  onPhaseUpdate: (phase: FormPhase) => void
+  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>,
 ) => {
-  handleConfirmDelete(onDelete, setShowDeleteConfirm, phase, onPhaseUpdate);
+  onDelete();
+  setShowDeleteConfirm(false);
+};
+
+export const handleDeleteClick = (
+  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+  setShowDeleteConfirm(true);
 };
 
 export const validateTask = (
   localTask: FormTask,
-  setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>
+  setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>,
+  phaseStartDate: string
 ): boolean => {
   const newErrors: { [key: string]: string } = {};
-  if (!localTask.title.trim()) newErrors.title = "Title is required";
-  if (!localTask.startDate) newErrors.startDate = "Start date is required";
+  
+  if (!localTask.title.trim()) {
+    newErrors.title = "Title is required";
+  }
+  
+  if (!localTask.startDate) {
+    newErrors.startDate = "Start date is required";
+  } else if (localTask.startDate < phaseStartDate) {
+    newErrors.startDate = "Start date cannot be before phase start date";
+  }
+  
   setErrors(newErrors);
   return Object.keys(newErrors).length === 0;
 };
@@ -106,9 +130,10 @@ export const handleDone = (
   selectedContacts: UserView[],
   setLocalTask: React.Dispatch<React.SetStateAction<FormTask>>,
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>,
-  onUpdate: (task: FormTask) => void
+  onUpdate: (task: FormTask) => void,
+  phaseStartDate: string
 ) => {
-  if (validateTask(localTask, setErrors)) {
+  if (validateTask(localTask, setErrors, phaseStartDate)) {
     const updatedTask = {
       ...localTask,
       selectedContacts: selectedContacts.map((contact) => ({

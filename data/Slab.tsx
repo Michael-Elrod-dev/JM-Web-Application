@@ -275,7 +275,7 @@ const CONSTRUCTION_START_PHASE: FormPhase = {
       id: "", 
       title: "Slab materials ordered/scheduled", 
       dueDate: "",
-      offset: 0,
+      offset: 2,
       details: "Fill/Plastic/Rebar/Concrete ordered and scheduled",
       isExpanded: false,
       selectedContacts: []

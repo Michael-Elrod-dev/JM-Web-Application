@@ -17,13 +17,19 @@ export const updateMaterial = (updatedMaterial: FormMaterial, phase: FormPhase, 
   });
 };
 
-export const handleDeleteClick = (
-  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>,
+export const handleDeleteConfirm = (
+  materialId: string,
   onDelete: () => void,
-  phase: FormPhase,
-  onPhaseUpdate: (phase: FormPhase) => void
+  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>,
 ) => {
-  handleConfirmDelete(onDelete, setShowDeleteConfirm, phase, onPhaseUpdate);
+  onDelete();
+  setShowDeleteConfirm(false);
+};
+
+export const handleDeleteClick = (
+  setShowDeleteConfirm: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+  setShowDeleteConfirm(true);
 };
 
 export const handleDueDateChange = (
@@ -34,7 +40,12 @@ export const handleDueDateChange = (
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>
 ) => {
   if (field === "dueDate") {
-    if (value >= phaseStartDate) {
+    // Create Date objects for comparison, setting time to midnight
+    const selectedDate = value ? new Date(new Date(value).setHours(0,0,0,0)) : null;
+    const phaseStart = new Date(phaseStartDate);
+    phaseStart.setHours(0,0,0,0);
+
+    if (selectedDate && selectedDate >= phaseStart) {
       setLocalMaterial((prev) => ({
         ...prev,
         [field]: value,
@@ -75,11 +86,21 @@ export const handleContactRemove = (
 
 export const validateMaterial = (
   localMaterial: FormMaterial,
-  setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>
+  setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>,
+  phaseStartDate: string
 ): boolean => {
   const newErrors: { [key: string]: string } = {};
-  if (!localMaterial.title.trim()) newErrors.title = "Title is required";
-  if (!localMaterial.dueDate) newErrors.dueDate = "Due date is required";
+  
+  if (!localMaterial.title.trim()) {
+    newErrors.title = "Title is required";
+  }
+  
+  if (!localMaterial.dueDate) {
+    newErrors.dueDate = "Due date is required";
+  } else if (localMaterial.dueDate < phaseStartDate) {
+    newErrors.dueDate = "Due date cannot be before phase start date";
+  }
+  
   setErrors(newErrors);
   return Object.keys(newErrors).length === 0;
 };
@@ -89,9 +110,10 @@ export const handleDone = (
   selectedContacts: UserView[],
   setLocalMaterial: React.Dispatch<React.SetStateAction<FormMaterial>>,
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>,
-  onUpdate: (material: FormMaterial) => void
+  onUpdate: (material: FormMaterial) => void,
+  phaseStartDate: string
 ) => {
-  if (validateMaterial(localMaterial, setErrors)) {
+  if (validateMaterial(localMaterial, setErrors, phaseStartDate)) {
     const updatedMaterial = {
       ...localMaterial,
       selectedContacts: selectedContacts.map((contact) => ({

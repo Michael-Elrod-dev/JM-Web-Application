@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SmallCardFrame from "../util/SmallCardFrame";
 import StatusButton from "./StatusButton";
-import { formatPhoneNumber, createLocalDate } from "../../app/utils";
+import { formatPhoneNumber, createLocalDate, addBusinessDays } from "../../app/utils";
 import { TaskView, UserView } from "../../app/types/views";
 import { TaskUpdatePayload } from "@/app/types/database";
 
@@ -87,11 +87,10 @@ const TasksCard: React.FC<TasksCardProps> = ({
           day: "numeric",
         });
       }
-  
-      // For longer durations, show the range
-      const end = createLocalDate(startDate);
-      end.setDate(end.getDate() + (duration - 1));
-  
+    
+      // For longer durations, use addBusinessDays from utils
+      const end = addBusinessDays(start, duration - 1);
+    
       return `${start.toLocaleDateString("en-US", {
         month: "numeric",
         day: "numeric",
@@ -101,25 +100,6 @@ const TasksCard: React.FC<TasksCardProps> = ({
       })}`;
     } catch (error) {
       console.error("Error calculating date range:", error);
-      return "Invalid Date";
-    }
-  };
-  
-  const calculateDueDate = (startDate: string, duration: number): string => {
-    try {
-      const date = createLocalDate(startDate);
-      if (isNaN(date.getTime())) {
-        throw new Error("Invalid start date");
-      }
-      if (duration > 0) {
-        date.setDate(date.getDate() + (duration - 1));
-      }
-      return date.toLocaleDateString("en-US", {
-        month: "numeric",
-        day: "numeric",
-      });
-    } catch (error) {
-      console.error("Error calculating due date:", error);
       return "Invalid Date";
     }
   };
@@ -216,10 +196,6 @@ const TasksCard: React.FC<TasksCardProps> = ({
       <h4 className="text-md font-semibold mb-2">Tasks</h4>
       <div className="space-y-2">
         {sortedTasks.map((task) => {
-          const dueDate = calculateDueDate(
-            task.task_startdate,
-            task.task_duration
-          );
           const isExpanded = expandedTaskId === task.task_id;
 
           return (

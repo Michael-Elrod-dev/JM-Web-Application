@@ -5,6 +5,7 @@ import { RowDataPacket } from "mysql2";
 import { JobUpdatePayload } from "@/app/types/database";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { addBusinessDays } from "@/app/utils";
 
 // Interfaces
 interface JobDetails extends RowDataPacket {
@@ -81,46 +82,8 @@ export async function GET(
           j.job_startdate,
           j.job_location,
           j.job_description,
-          CONCAT(
-            DATE_FORMAT(j.job_startdate, '%m/%d/%y'),
-            ' - ',
-            DATE_FORMAT(
-              GREATEST(
-                IFNULL((
-                  SELECT MAX(DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
-                  FROM task t
-                  JOIN phase p ON t.phase_id = p.phase_id
-                  WHERE p.job_id = j.job_id
-                ), j.job_startdate),
-                IFNULL((
-                  SELECT MAX(m.material_duedate)
-                  FROM material m
-                  JOIN phase p ON m.phase_id = p.phase_id
-                  WHERE p.job_id = j.job_id
-                ), j.job_startdate)
-              ),
-              '%m/%d/%y'
-            )
-          ) as date_range,
-          CEIL(
-            DATEDIFF(
-              GREATEST(
-                IFNULL((
-                  SELECT MAX(DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
-                  FROM task t
-                  JOIN phase p ON t.phase_id = p.phase_id
-                  WHERE p.job_id = j.job_id
-                ), j.job_startdate),
-                IFNULL((
-                  SELECT MAX(m.material_duedate)
-                  FROM material m
-                  JOIN phase p ON m.phase_id = p.phase_id
-                  WHERE p.job_id = j.job_id
-                ), j.job_startdate)
-              ),
-              j.job_startdate
-            ) / 7
-          ) + 1 as total_weeks,
+          -- Let job start date be used as-is for initial range
+          j.job_startdate as job_startdate,
           CEIL(DATEDIFF(CURDATE(), j.job_startdate) / 7) + 1 as current_week
         FROM job j
         WHERE j.job_id = ?
@@ -141,17 +104,7 @@ export async function GET(
           p.phase_id as id,
           p.phase_title as name,
           p.phase_startdate as startDate,
-          GREATEST(
-            IFNULL(
-              (SELECT MAX(DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
-               FROM task t WHERE t.phase_id = p.phase_id),
-              p.phase_startdate
-            ),
-            IFNULL(
-              (SELECT MAX(m.material_duedate) FROM material m WHERE m.phase_id = p.phase_id),
-              p.phase_startdate
-            )
-          ) as endDate,
+          p.phase_startdate as endDate, -- We'll calculate real end date in JS
           CASE (p.phase_id % 6)
             WHEN 0 THEN '#3B82F6'
             WHEN 1 THEN '#10B981'
@@ -170,20 +123,56 @@ export async function GET(
       // Get status counts for progress bar
       const [statusCounts] = await connection.query<StatusCounts[]>(
         `
-        WITH task_counts AS (
+        WITH RECURSIVE business_days AS (
+          SELECT CURDATE() as date
+          UNION ALL
+          SELECT DATE_ADD(date, INTERVAL 1 DAY)
+          FROM business_days
+          WHERE DATE_ADD(date, INTERVAL 1 DAY) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        ),
+        working_days AS (
+          SELECT date FROM business_days
+          WHERE DAYOFWEEK(date) NOT IN (1, 7)
+        ),
+        task_counts AS (
           SELECT
             COUNT(CASE 
-              WHEN task_status = 'Incomplete' 
-              AND DATE_ADD(task_startdate, INTERVAL task_duration DAY) < CURDATE() 
+              WHEN t.task_status = 'Incomplete' 
+              AND EXISTS (
+                SELECT 1 FROM (
+                  SELECT DATE_ADD(t.task_startdate, 
+                    INTERVAL (t.task_duration + 
+                      (SELECT COUNT(*) FROM business_days b 
+                       WHERE DAYOFWEEK(b.date) IN (1, 7) 
+                       AND b.date BETWEEN t.task_startdate 
+                       AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
+                    ) DAY) as end_date
+                ) as task_end
+                WHERE end_date < CURDATE()
+              )
               THEN 1 END) as task_overdue,
             COUNT(CASE 
-              WHEN task_status = 'Incomplete' 
-              AND DATE_ADD(task_startdate, INTERVAL task_duration DAY) 
-              BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+              WHEN t.task_status = 'Incomplete' 
+              AND EXISTS (
+                SELECT 1 FROM working_days w
+                WHERE DATE_ADD(t.task_startdate, 
+                  INTERVAL (t.task_duration + 
+                    (SELECT COUNT(*) FROM business_days b 
+                     WHERE DAYOFWEEK(b.date) IN (1, 7) 
+                     AND b.date BETWEEN t.task_startdate 
+                     AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
+                  ) DAY) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+              )
               THEN 1 END) as task_next_seven,
             COUNT(CASE 
-              WHEN task_status = 'Incomplete' 
-              AND DATE_ADD(task_startdate, INTERVAL task_duration DAY) > DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+              WHEN t.task_status = 'Incomplete' 
+              AND DATE_ADD(t.task_startdate, 
+                INTERVAL (t.task_duration + 
+                  (SELECT COUNT(*) FROM business_days b 
+                   WHERE DAYOFWEEK(b.date) IN (1, 7) 
+                   AND b.date BETWEEN t.task_startdate 
+                   AND DATE_ADD(t.task_startdate, INTERVAL t.task_duration DAY))
+                ) DAY) > DATE_ADD(CURDATE(), INTERVAL 7 DAY)
               THEN 1 END) as task_beyond_seven
           FROM task t
           JOIN phase p ON t.phase_id = p.phase_id
@@ -375,8 +364,37 @@ export async function GET(
                 : note.created_by,
           }));
 
+          // Calculate phase end date using the utility functions
+          let latestEndDate = new Date(phase.startDate);
+
+          transformedTasks.forEach((task) => {
+            const taskStart = new Date(task.task_startdate);
+            const taskDuration = task.task_duration;
+            let taskEnd = new Date(taskStart);
+            let daysToAdd = taskDuration;
+            
+            while (daysToAdd > 0) {
+              taskEnd.setDate(taskEnd.getDate() + 1);
+              if (taskEnd.getDay() !== 0 && taskEnd.getDay() !== 6) {
+                daysToAdd--;
+              }
+            }
+
+            if (taskEnd > latestEndDate) {
+              latestEndDate = taskEnd;
+            }
+          });
+
+          transformedMaterials.forEach((material) => {
+            const materialDate = new Date(material.material_duedate);
+            if (materialDate > latestEndDate) {
+              latestEndDate = materialDate;
+            }
+          });
+
           return {
             ...phase,
+            endDate: latestEndDate.toISOString().split('T')[0],
             tasks: transformedTasks.filter(task => task.phase_id === phase.id),
             materials: transformedMaterials.filter(material => material.phase_id === phase.id),
             notes: transformedNotes,
@@ -384,15 +402,34 @@ export async function GET(
         })
       );
 
+      // Calculate job date range
+      let jobEndDate = new Date(job.job_startdate);
+      enhancedPhases.forEach(phase => {
+        const phaseEnd = new Date(phase.endDate);
+        if (phaseEnd > jobEndDate) {
+          jobEndDate = phaseEnd;
+        }
+      });
+
       const jobDetails = {
         ...job,
         phases: enhancedPhases,
         tasks: transformedTasks,
         materials: transformedMaterials,
+        date_range: `${new Date(job.job_startdate).toLocaleDateString('en-US', {
+          month: 'numeric',
+          day: 'numeric',
+          year: '2-digit'
+        })} - ${jobEndDate.toLocaleDateString('en-US', {
+          month: 'numeric',
+          day: 'numeric',
+          year: '2-digit'
+        })}`,
         ...statusCounts[0],
       };
 
       return NextResponse.json({ job: jobDetails });
+
     } finally {
       connection.release();
     }
@@ -543,7 +580,6 @@ export async function PATCH(
         [jobId]
       );
 
-      // Ensure dates are compared in UTC to avoid timezone issues
       const currentStartDate = new Date(currentJob[0].job_startdate);
       currentStartDate.setUTCHours(0, 0, 0, 0);
 
@@ -556,99 +592,96 @@ export async function PATCH(
       );
 
       if (daysDifference !== 0) {
+        // Helper function to get next business day
+        const getNextBusinessDay = (date: Date): Date => {
+          const day = date.getDay();
+          if (day === 6) { // Saturday
+            date.setDate(date.getDate() + 2);
+          } else if (day === 0) { // Sunday
+            date.setDate(date.getDate() + 1);
+          }
+          return date;
+        };
+
         // Update job start date using DATE() to strip time components
         await connection.query(
           "UPDATE job SET job_startdate = DATE(?) WHERE job_id = ?",
           [body.job_startdate, jobId]
         );
 
-        // Update task dates using DATE()
+        // Update task dates - exclude phase 1 and adjust for weekends
         await connection.query(
           `UPDATE task t
            JOIN phase p ON t.phase_id = p.phase_id
-           SET t.task_startdate = DATE(DATE_ADD(t.task_startdate, INTERVAL ? DAY))
-           WHERE p.job_id = ?`,
-          [daysDifference, jobId]
+           SET t.task_startdate = (
+             SELECT DATE(
+               CASE
+                 WHEN DAYOFWEEK(DATE_ADD(t.task_startdate, INTERVAL ? DAY)) IN (1, 7)
+                 THEN DATE_ADD(DATE_ADD(t.task_startdate, INTERVAL ? DAY),
+                   INTERVAL CASE
+                     WHEN DAYOFWEEK(DATE_ADD(t.task_startdate, INTERVAL ? DAY)) = 1 THEN 1
+                     WHEN DAYOFWEEK(DATE_ADD(t.task_startdate, INTERVAL ? DAY)) = 7 THEN 2
+                   END DAY)
+                 ELSE DATE_ADD(t.task_startdate, INTERVAL ? DAY)
+               END
+             )
+           )
+           WHERE p.job_id = ? AND p.phase_id != (
+             SELECT MIN(phase_id) FROM phase WHERE job_id = ?
+           )`,
+          [daysDifference, daysDifference, daysDifference, daysDifference, daysDifference, jobId, jobId]
         );
 
-        // Update material dates using DATE()
+        // Update material dates - exclude phase 1 and adjust for weekends
         await connection.query(
           `UPDATE material m
            JOIN phase p ON m.phase_id = p.phase_id
-           SET m.material_duedate = DATE(DATE_ADD(m.material_duedate, INTERVAL ? DAY))
-           WHERE p.job_id = ?`,
-          [daysDifference, jobId]
+           SET m.material_duedate = (
+             SELECT DATE(
+               CASE
+                 WHEN DAYOFWEEK(DATE_ADD(m.material_duedate, INTERVAL ? DAY)) IN (1, 7)
+                 THEN DATE_ADD(DATE_ADD(m.material_duedate, INTERVAL ? DAY),
+                   INTERVAL CASE
+                     WHEN DAYOFWEEK(DATE_ADD(m.material_duedate, INTERVAL ? DAY)) = 1 THEN 1
+                     WHEN DAYOFWEEK(DATE_ADD(m.material_duedate, INTERVAL ? DAY)) = 7 THEN -1
+                   END DAY)
+                 ELSE DATE_ADD(m.material_duedate, INTERVAL ? DAY)
+               END
+             )
+           )
+           WHERE p.job_id = ? AND p.phase_id != (
+             SELECT MIN(phase_id) FROM phase WHERE job_id = ?
+           )`,
+          [daysDifference, daysDifference, daysDifference, daysDifference, daysDifference, jobId, jobId]
         );
 
-        // Update phase dates based on earliest task or material date
+        // Update phase dates with adjusted task and material dates
         await connection.query(
-          `
-          UPDATE phase p
-          SET p.phase_startdate = (
-            SELECT MIN(earliest_date) 
-            FROM (
-              SELECT MIN(t.task_startdate) as earliest_date
-              FROM task t
-              WHERE t.phase_id = p.phase_id
-              
-              UNION ALL
-              
-              SELECT MIN(m.material_duedate)
-              FROM material m
-              WHERE m.phase_id = p.phase_id
-            ) dates
-          )
-          WHERE p.job_id = ?
-        `,
-          [jobId]
+          `UPDATE phase p
+           JOIN (
+             SELECT phase_id, MIN(earliest_date) as min_date
+             FROM (
+               SELECT t.phase_id, t.task_startdate as earliest_date
+               FROM task t
+               
+               UNION ALL
+               
+               SELECT m.phase_id, m.material_duedate
+               FROM material m
+             ) all_dates
+             GROUP BY phase_id
+           ) dates ON p.phase_id = dates.phase_id
+           SET p.phase_startdate = dates.min_date
+           WHERE p.job_id = ? AND p.phase_id != (
+             SELECT min_phase_id FROM (
+               SELECT MIN(phase_id) as min_phase_id 
+               FROM phase 
+               WHERE job_id = ?
+             ) as min_phase
+           )`,
+          [jobId, jobId]
         );
       }
-    }
-
-    // Handle timeline extension/reduction
-    if (body.extension_days) {
-      const extensionDays = body.extension_days;
-
-      // Update task durations
-      await connection.query(
-        `UPDATE task t
-         JOIN phase p ON t.phase_id = p.phase_id
-         SET t.task_duration = t.task_duration + ?
-         WHERE p.job_id = ?`,
-        [extensionDays, jobId]
-      );
-
-      // Update material due dates
-      await connection.query(
-        `UPDATE material m
-         JOIN phase p ON m.phase_id = p.phase_id
-         SET m.material_duedate = DATE_ADD(m.material_duedate, INTERVAL ? DAY)
-         WHERE p.job_id = ?`,
-        [extensionDays, jobId]
-      );
-
-      // Update phase dates based on earliest task or material date
-      await connection.query(
-        `
-        UPDATE phase p
-        SET p.phase_startdate = (
-          SELECT MIN(earliest_date) 
-          FROM (
-            SELECT MIN(t.task_startdate) as earliest_date
-            FROM task t
-            WHERE t.phase_id = p.phase_id
-            
-            UNION ALL
-            
-            SELECT MIN(m.material_duedate)
-            FROM material m
-            WHERE m.phase_id = p.phase_id
-          ) dates
-        )
-        WHERE p.job_id = ?
-      `,
-        [jobId]
-      );
     }
 
     await connection.commit();
@@ -658,6 +691,84 @@ export async function PATCH(
     console.error("Error updating job:", error);
     return NextResponse.json(
       { error: "Failed to update job" },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+
+    // Get all phase IDs for this job
+    const [phases] = await connection.query<RowDataPacket[]>(
+      "SELECT phase_id FROM phase WHERE job_id = ?",
+      [params.id]
+    );
+
+    const phaseIds = phases.map(phase => phase.phase_id);
+
+    // If there are phases, delete all related records
+    if (phaseIds.length > 0) {
+      // Delete from user_task (need to get task_ids first)
+      await connection.query(`
+        DELETE ut FROM user_task ut
+        INNER JOIN task t ON ut.task_id = t.task_id
+        WHERE t.phase_id IN (?)
+      `, [phaseIds]);
+
+      // Delete from user_material (need to get material_ids first)
+      await connection.query(`
+        DELETE um FROM user_material um
+        INNER JOIN material m ON um.material_id = m.material_id
+        WHERE m.phase_id IN (?)
+      `, [phaseIds]);
+
+      // Delete tasks
+      await connection.query(
+        "DELETE FROM task WHERE phase_id IN (?)",
+        [phaseIds]
+      );
+
+      // Delete materials
+      await connection.query(
+        "DELETE FROM material WHERE phase_id IN (?)",
+        [phaseIds]
+      );
+
+      // Delete notes
+      await connection.query(
+        "DELETE FROM note WHERE phase_id IN (?)",
+        [phaseIds]
+      );
+
+      // Delete phases
+      await connection.query(
+        "DELETE FROM phase WHERE job_id = ?",
+        [params.id]
+      );
+    }
+
+    // Finally delete the job
+    await connection.query(
+      "DELETE FROM job WHERE job_id = ?",
+      [params.id]
+    );
+
+    await connection.commit();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error deleting job:", error);
+    return NextResponse.json(
+      { error: "Failed to delete job" },
       { status: 500 }
     );
   } finally {

@@ -5,7 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventContentArg } from "@fullcalendar/core";
-import { Job, Phase } from "../types/database";
+import { Job } from "../types/database";
 import {
   CalendarEvent,
   SelectedEventInfo,
@@ -14,25 +14,25 @@ import {
 import { Legend } from "../../components/calendar/Legend";
 
 const phaseColors = [
-  "#3498db", // blue
-  "#2ecc71", // green
-  "#e74c3c", // red
-  "#9b59b6", // purple
-  "#f1c40f", // yellow
-  "#1abc9c", // turquoise
-  "#e67e22", // orange
-  "#34495e", // navy
+  "#B8DEFF", // soft blue
+  "#D4D6FF", // soft periwinkle
+  "#FFB3B3", // soft pink
+  "#D7C0E8", // soft purple
+  "#C3D7FF", // soft steel blue
+  "#B4E6E0", // soft turquoise
+  "#FFD1B3", // soft orange
+  "#BBC7D4", // soft navy
 ];
 
 const jobColors = [
-  "#FF6B6B", // red
-  "#4ECDC4", // teal
-  "#45B7D1", // blue
-  "#96CEB4", // green
-  "#FFEEAD", // yellow
-  "#D4A5A5", // pink
-  "#9B59B6", // purple
-  "#3498DB", // light blue
+  "#FFD6D6", // soft salmon
+  "#C2ECE8", // soft teal
+  "#BDE5F2", // soft sky blue
+  "#D6EBE0", // soft sage
+  "#FFF3D1", // soft cream
+  "#F2D6D6", // soft rose
+  "#E1D2E8", // soft lavender
+  "#CCE5FF", // soft powder blue
 ];
 
 export default function CalendarPage() {
@@ -67,7 +67,7 @@ export default function CalendarPage() {
   const updateEventStatus = (
     itemId: number,
     type: "task" | "material",
-    newStatus: "Complete" | "Incomplete"
+    newStatus: "Complete" | "Incomplete" | "In Progress"
   ) => {
     setEvents((currentEvents) =>
       currentEvents.map((event) => {
@@ -261,7 +261,7 @@ export default function CalendarPage() {
 
   const renderEventContent = (eventInfo: EventContentArg) => {
     const isComplete = eventInfo.event.extendedProps.status === "Complete";
-  
+    
     return (
       <div
         style={{
@@ -270,29 +270,41 @@ export default function CalendarPage() {
           cursor: "pointer",
           textDecoration: isComplete ? "line-through" : "none",
           opacity: isComplete ? 0.5 : 1,
+          color: "inherit",
         }}
-        className="hover:opacity-75 transition-opacity"
+        className="hover:opacity-75 transition-opacity flex items-center gap-2 text-gray-900 dark:text-gray-100"
       >
-        <div
-          style={{
-            fontWeight: "bold",
-            fontSize: "0.85em",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {eventInfo.event.title}
-        </div>
-        {!eventInfo.event.allDay && eventInfo.timeText && (
-          <div style={{ fontSize: "0.75em", opacity: 0.7 }}>
-            {eventInfo.timeText}
+        {/* Status dot */}
+        <span
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            eventInfo.event.extendedProps.status === "Complete"
+              ? "bg-green-500"
+              : eventInfo.event.extendedProps.status === "In Progress"
+              ? "bg-yellow-500"
+              : "bg-red-500"
+          }`}
+        />
+        <div className="min-w-0">
+          <div
+            style={{
+              fontWeight: "bold",
+              fontSize: "0.85em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {eventInfo.event.title}
           </div>
-        )}
+          {!eventInfo.event.allDay && eventInfo.timeText && (
+            <div style={{ fontSize: "0.75em", opacity: 0.7 }}>
+              {eventInfo.timeText}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
-  
 
   return (
     <div className="flex-1">

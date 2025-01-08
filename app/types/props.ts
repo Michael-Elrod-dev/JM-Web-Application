@@ -55,6 +55,7 @@ export interface DetailPhaseCardProps {
   onMaterialDelete: (materialId: number) => Promise<void>;
   onTaskCreate: (phaseId: number, task: FormTask) => Promise<any>;
   onMaterialCreate: (phaseId: number, material: FormMaterial) => Promise<any>;
+  onNoteDelete: (phaseId: number, noteTimestamp: string) => Promise<void>;
 }
 
 export interface PhaseCardProps {

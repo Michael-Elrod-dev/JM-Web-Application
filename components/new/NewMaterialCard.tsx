@@ -1,13 +1,15 @@
 // components/MaterialCard.tsx
 
 import React, { useState, useEffect } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import ContactCard from "../contact/ContactCard";
 import { FormMaterial } from "../../app/types/database";
 import { UserView } from "../../app/types/views";
 import { MaterialCardProps } from "../../app/types/props";
-import { formatDate } from "@/app/utils";
-import { handleConfirmDelete } from "../../handlers/new/jobs"
+import { formatDate,createLocalDate } from "@/app/utils";
+import { handleDeleteConfirm } from "@/handlers/new/materials";
 import {
   handleDeleteClick,
   handleDueDateChange,
@@ -23,7 +25,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
   phaseStartDate,
   contacts,
   phase,
-  onPhaseUpdate
+  onPhaseUpdate,
 }) => {
   const [selectedContacts, setSelectedContacts] = useState<UserView[]>(
     material.selectedContacts
@@ -51,7 +53,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
     } else {
       setLocalMaterial({
         ...material,
-        isExpanded: localMaterial?.isExpanded || material.isExpanded
+        isExpanded: localMaterial?.isExpanded || material.isExpanded,
       });
     }
   }, [material, phaseStartDate, localMaterial?.isExpanded]);
@@ -94,27 +96,32 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
                 Due Date
               </label>
-              <input
-                type="date"
-                value={localMaterial.dueDate}
-                onChange={(e) =>
+              <DatePicker
+                selected={localMaterial.dueDate ? createLocalDate(localMaterial.dueDate) : null}
+                onChange={(date: Date | null) =>
                   handleDueDateChange(
                     "dueDate",
-                    e.target.value,
+                    date?.toISOString().split("T")[0] || "",
                     phaseStartDate,
                     setLocalMaterial,
                     setErrors
                   )
                 }
-                min={phaseStartDate}
+                filterDate={(date: Date) => {
+                  const day = date.getDay();
+                  return day !== 0 && day !== 6;
+                }}
+                dateFormat="MM/dd/yyyy"
+                minDate={new Date(phaseStartDate)}
                 className={`w-full p-2 border ${
                   errors.dueDate
                     ? "border-red-500"
                     : "border-zinc-300 dark:border-zinc-600"
                 } rounded dark:bg-zinc-800 dark:text-white`}
+                wrapperClassName="w-full"
               />
               {errors.dueDate && (
-                <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>
+                <p className="text-red-500 text-xs">{errors.dueDate}</p>
               )}
             </div>
           </div>
@@ -199,7 +206,8 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                   selectedContacts,
                   setLocalMaterial,
                   setErrors,
-                  onUpdate
+                  onUpdate,
+                  phase.startDate
                 )
               }
               className="mr-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
@@ -207,7 +215,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
               Done
             </button>
             <button
-              onClick={() => handleDeleteClick(setShowDeleteConfirm, onDelete, phase, onPhaseUpdate)}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
             >
               Delete
@@ -236,7 +244,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
               <FaEdit size={18} />
             </button>
             <button
-              onClick={() => handleDeleteClick(setShowDeleteConfirm, onDelete, phase, onPhaseUpdate)}
+              onClick={() => handleDeleteClick(setShowDeleteConfirm)}
               className="text-zinc-400 hover:text-red-500 transition-colors"
             >
               <FaTrash size={18} />
@@ -262,9 +270,7 @@ const NewMaterialCard: React.FC<MaterialCardProps> = ({
                 Cancel
               </button>
               <button
-                onClick={() =>
-                  handleConfirmDelete(onDelete, setShowDeleteConfirm, phase, onPhaseUpdate)
-                }
+                onClick={() => handleDeleteConfirm(material.id, onDelete, setShowDeleteConfirm)}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Delete
