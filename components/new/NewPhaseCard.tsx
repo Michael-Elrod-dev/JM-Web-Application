@@ -6,7 +6,7 @@ import CardFrame from "../util/CardFrame";
 import TaskCard from "./NewTaskCard";
 import MaterialCard from "./NewMaterialCard";
 import NoteCard from "./NewNoteCard";
-import EditPhaseModal from "./EditPhaseModal";
+import EditPhaseModal from "../util/EditPhaseModal";
 import { UserView } from "../../app/types/views";
 import { PhaseCardProps } from "../../app/types/props";
 import { FormTask, FormMaterial, FormNote } from "@/app/types/database";
@@ -77,8 +77,22 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
             )
           };
         });
+  
+        if (updates.extendFuturePhases) {
+          onUpdate(
+            {
+              ...phase,
+              title: updates.title,
+              startDate: updates.startDate,
+              tasks: updatedTasks,
+              materials: updatedMaterials,
+            }, 
+            updates.extend,
+            true
+          );
+          return;
+        }
       } else {
-        // Handle normal date changes (no extension)
         updatedTasks = phase.tasks.map((task) => ({
           ...task,
           startDate: formatToDateString(
@@ -95,18 +109,17 @@ const NewPhaseCard: React.FC<PhaseCardProps> = ({
       }
     }
   
-    const updatedPhase = {
-      ...phase,
-      title: updates.title,
-      startDate: updates.startDate,
-      tasks: updatedTasks,
-      materials: updatedMaterials,
-      notes: [...phase.notes],
-      description: phase.description,
-      tempId: phase.tempId
-    };
-  
-    onUpdate(updatedPhase, updates.extend, updates.extendFuturePhases);
+    onUpdate(
+      {
+        ...phase,
+        title: updates.title,
+        startDate: updates.startDate,
+        tasks: updatedTasks,
+        materials: updatedMaterials,
+      },
+      updates.extend,
+      false
+    );
   };
 
   useEffect(() => {

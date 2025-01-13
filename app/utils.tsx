@@ -1,3 +1,5 @@
+import { TaskView, MaterialView } from "./types/views";
+
 export const isEmailValid = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
@@ -148,3 +150,27 @@ export function getBusinessDaysBetween(startDate: Date, endDate: Date): number {
   
   return count;
 }
+
+export const calculatePhaseDates = (tasks: TaskView[], materials: MaterialView[]) => {
+  let phaseStart = new Date(8640000000000000); // Max date
+  let phaseEnd = new Date(-8640000000000000); // Min date
+
+  tasks.forEach(task => {
+    const taskStart = createLocalDate(task.task_startdate);
+    const taskEnd = addBusinessDays(taskStart, task.task_duration);
+    
+    if (taskStart < phaseStart) phaseStart = taskStart;
+    if (taskEnd > phaseEnd) phaseEnd = taskEnd;
+  });
+
+  materials.forEach(material => {
+    const materialDate = createLocalDate(material.material_duedate);
+    if (materialDate < phaseStart) phaseStart = materialDate;
+    if (materialDate > phaseEnd) phaseEnd = materialDate;
+  });
+
+  return {
+    startDate: formatToDateString(phaseStart),
+    endDate: formatToDateString(phaseEnd)
+  };
+};

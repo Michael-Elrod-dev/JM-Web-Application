@@ -54,16 +54,15 @@ export default function EditPhaseModal({
           )
         : 0;
   
-      const totalDaysDiff = daysDiff + extend;
-  
-      onUpdate({
+      const updates = {
         title: title.trim() || initialTitle,
         startDate: startDate || initialStartDate,
         extend,
         extendFuturePhases,
         adjustItems: startDate !== initialStartDate || extend > 0,
-        daysDiff: totalDaysDiff
-      });
+        daysDiff
+      };
+      onUpdate(updates);
       handleClose();
     } catch (error) {
       console.error("Failed to update phase:", error);

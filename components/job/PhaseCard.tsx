@@ -9,6 +9,7 @@ import MaterialsCard from "./MaterialsCard";
 import SmallCardFrame from "../util/SmallCardFrame";
 import NewTaskCard from "../new/NewTaskCard";
 import NewMaterialCard from "../new/NewMaterialCard";
+import EditPhaseModal from "../util/EditPhaseModal";
 import { DetailPhaseCardProps } from "@/app/types/props";
 import { createLocalDate } from "@/app/utils";
 
@@ -26,6 +27,8 @@ const PhaseCard: React.FC<DetailPhaseCardProps> = ({
   onTaskCreate,
   onMaterialCreate,
   onNoteDelete,
+  jobStartDate,
+  onPhaseUpdate,
 }) => {
   const params = useParams();
   const jobId = params?.id as string;
@@ -36,7 +39,7 @@ const PhaseCard: React.FC<DetailPhaseCardProps> = ({
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [activeNoteModal, setActiveNoteModal] = useState<string | null>(null);
   const [editNoteDetails, setEditNoteDetails] = useState("");
-  console.log(phase.startDate);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   // Format dates for display
   const startDate = createLocalDate(phase.startDate).toLocaleDateString(
     "en-US",
@@ -51,9 +54,18 @@ const PhaseCard: React.FC<DetailPhaseCardProps> = ({
     day: "numeric",
     year: "2-digit",
   });
-  console.log("here");
-  console.log(startDate);
-  console.log(endDate);
+
+  const handlePhaseModalUpdate = (updates: {
+    title: string;
+    startDate: string;
+    extend: number;
+    extendFuturePhases: boolean;
+    adjustItems?: boolean;
+    daysDiff?: number;
+  }) => {
+    onPhaseUpdate(phase.phase_id, updates);
+  };
+
   const handleEditNote = async (noteTimestamp: string, newDetails: string) => {
     try {
       const response = await fetch(
@@ -139,7 +151,7 @@ const PhaseCard: React.FC<DetailPhaseCardProps> = ({
 
         <div className="flex items-center gap-4">
           <button
-            onClick={() => {}}
+            onClick={() => setIsEditModalOpen(true)}
             className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
           >
             <svg
@@ -492,6 +504,14 @@ const PhaseCard: React.FC<DetailPhaseCardProps> = ({
           )}
         </>
       )}
+      <EditPhaseModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdate={handlePhaseModalUpdate}
+        initialTitle={phase.name}
+        initialStartDate={phase.startDate}
+        jobStartDate={jobStartDate}
+      />
     </CardFrame>
   );
 };

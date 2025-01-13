@@ -5,7 +5,6 @@ import { RowDataPacket } from "mysql2";
 import { JobUpdatePayload } from "@/app/types/database";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { addBusinessDays } from "@/app/utils";
 
 // Interfaces
 interface JobDetails extends RowDataPacket {
@@ -373,7 +372,7 @@ export async function GET(
             let taskEnd = new Date(taskStart);
             let daysToAdd = taskDuration;
             
-            while (daysToAdd > 0) {
+            while (daysToAdd > 1) {
               taskEnd.setDate(taskEnd.getDate() + 1);
               if (taskEnd.getDay() !== 0 && taskEnd.getDay() !== 6) {
                 daysToAdd--;

@@ -5,6 +5,7 @@ import { TaskUpdatePayload } from '@/app/types/database';
 import { RowDataPacket } from 'mysql2';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { addBusinessDays } from '@/app/utils';
 
 export async function PATCH(
   request: Request,
@@ -58,11 +59,34 @@ export async function PATCH(
       );
     }
 
+    // New: Handle both extension types
     if (body.extension_days && !isNaN(body.extension_days)) {
-      await connection.query(
-        'UPDATE task SET task_duration = task_duration + ? WHERE task_id = ?',
-        [body.extension_days, taskId]
-      );
+      if (body.pushDates) {
+        // Get current task date
+        const [currentTask] = await connection.query<RowDataPacket[]>(
+          'SELECT task_startdate FROM task WHERE task_id = ?',
+          [taskId]
+        );
+    
+        if (currentTask.length > 0) {
+          // Calculate new date using addBusinessDays
+          const currentDate = new Date(currentTask[0].task_startdate);
+          const newDate = addBusinessDays(currentDate, body.extension_days);
+          const formattedNewDate = newDate.toISOString().split('T')[0];
+    
+          // Update with exact new date
+          await connection.query(
+            'UPDATE task SET task_startdate = ? WHERE task_id = ?',
+            [formattedNewDate, taskId]
+          );
+        }
+      } else {
+        // Original duration extension logic
+        await connection.query(
+          'UPDATE task SET task_duration = task_duration + ? WHERE task_id = ?',
+          [body.extension_days, taskId]
+        );
+      }
     }
 
     // Handle user assignments

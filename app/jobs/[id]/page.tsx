@@ -14,7 +14,12 @@ import FloorplanViewer from "@/components/job/FloorplanViewer";
 import Image from "next/image";
 import { JobUpdatePayload, FormTask, FormMaterial } from "@/app/types/database";
 import { useParams, useRouter } from "next/navigation";
-import { createLocalDate, formatToDateString } from "@/app/utils"
+import {
+  createLocalDate,
+  formatToDateString,
+  addBusinessDays,
+  calculatePhaseDates,
+} from "@/app/utils";
 import {
   JobDetailView,
   PhaseView,
@@ -49,35 +54,258 @@ export default function JobDetailPage() {
   const handleJobTerminate = async () => {
     try {
       const response = await fetch(`/api/jobs/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-  
+
       if (!response.ok) {
-        throw new Error('Failed to delete job');
+        throw new Error("Failed to delete job");
       }
-  
-      router.push('/jobs');
+
+      router.push("/jobs");
     } catch (error) {
-      console.error('Error deleting job:', error);
-      setError('Failed to delete job');
+      console.error("Error deleting job:", error);
+      setError("Failed to delete job");
     }
   };
 
   const handleJobCopy = (newStartDate: Date) => {
     if (!job) return;
-  
+
     const jobDataForCopy = {
       originalJobId: job.id,
       jobDetails: {
-        originalStartDate: job.phases[1].startDate.split('T')[0]
+        originalStartDate: job.phases[1].startDate.split("T")[0],
       },
       originalJobName: job.jobName,
       phases: job.phases,
-      newStartDate: newStartDate.toISOString().split('T')[0]
+      newStartDate: newStartDate.toISOString().split("T")[0],
     };
+
+    localStorage.setItem("jobToCopy", JSON.stringify(jobDataForCopy));
+    router.push("/jobs/new?copy=true");
+  };
+
+  const handlePhaseUpdate = async (
+    phaseId: number,
+    updates: {
+      title: string;
+      startDate: string;
+      extend: number;
+      extendFuturePhases: boolean;
+      daysDiff?: number;
+    }
+  ) => {
+    try {
+      let updatedPhase: PhaseView | null = null;
+      let otherUpdatedPhases: PhaseView[] = [];
   
-    localStorage.setItem('jobToCopy', JSON.stringify(jobDataForCopy));
-    router.push('/jobs/new?copy=true');
+      const getLatestDate = (
+        tasks: TaskView[],
+        materials: MaterialView[]
+      ): string => {
+        let latestDate = new Date(-8640000000000000);
+  
+        tasks.forEach((task) => {
+          const taskStart = createLocalDate(task.task_startdate);
+          const taskEnd = addBusinessDays(taskStart, task.task_duration - 1);
+          if (taskEnd > latestDate) {
+            latestDate = taskEnd;
+          }
+        });
+  
+        materials.forEach((material) => {
+          const materialDate = createLocalDate(material.material_duedate);
+          if (materialDate > latestDate) {
+            latestDate = materialDate;
+          }
+        });
+  
+        return formatToDateString(latestDate);
+      };
+  
+      const getEarliestDate = (
+        tasks: TaskView[],
+        materials: MaterialView[]
+      ): string => {
+        let earliestDate = new Date(8640000000000000);
+  
+        tasks.forEach((task) => {
+          const taskStart = createLocalDate(task.task_startdate);
+          if (taskStart < earliestDate) {
+            earliestDate = taskStart;
+          }
+        });
+  
+        materials.forEach((material) => {
+          const materialDate = createLocalDate(material.material_duedate);
+          if (materialDate < earliestDate) {
+            earliestDate = materialDate;
+          }
+        });
+  
+        return formatToDateString(earliestDate);
+      };
+  
+      setJob((prevJob) => {
+        if (!prevJob) return null;
+  
+        const phaseIndex = prevJob.phases.findIndex((p) => p.id === phaseId);
+        if (phaseIndex === -1) return prevJob;
+  
+        const updatedPhases = [...prevJob.phases];
+        const currentPhase: PhaseView = {
+          ...updatedPhases[phaseIndex],
+          tasks: [...updatedPhases[phaseIndex].tasks],
+          materials: [...updatedPhases[phaseIndex].materials],
+          notes: [...updatedPhases[phaseIndex].notes],
+        };
+  
+        if (updates.title !== currentPhase.name) {
+          currentPhase.name = updates.title;
+        }
+  
+        if (updates.daysDiff) {
+          currentPhase.tasks = currentPhase.tasks.map((task) => {
+            const newDate = formatToDateString(
+              addBusinessDays(
+                createLocalDate(task.task_startdate),
+                updates.daysDiff!
+              )
+            );
+  
+            return {
+              ...task,
+              task_startdate: newDate,
+            };
+          });
+  
+          currentPhase.materials = currentPhase.materials.map((material) => {
+            const newDate = formatToDateString(
+              addBusinessDays(
+                createLocalDate(material.material_duedate),
+                updates.daysDiff!
+              )
+            );
+  
+            return {
+              ...material,
+              material_duedate: newDate,
+            };
+          });
+        }
+  
+        if (updates.extend > 0) {
+          currentPhase.tasks = currentPhase.tasks.map((task) => {
+            const newDuration = task.task_duration + (updates.extend - 1);
+            return {
+              ...task,
+              task_duration: newDuration,
+            };
+          });
+          console.log('Updated phase tasks:', currentPhase.tasks);
+  
+          currentPhase.materials = currentPhase.materials.map((material) => {
+            const newDate = formatToDateString(
+              addBusinessDays(
+                createLocalDate(material.material_duedate),
+                updates.extend
+              )
+            );
+  
+            return {
+              ...material,
+              material_duedate: newDate,
+            };
+          });
+        }
+  
+        const { startDate, endDate } = calculatePhaseDates(
+          currentPhase.tasks,
+          currentPhase.materials
+        );
+        currentPhase.startDate = startDate;
+        currentPhase.endDate = endDate;
+        updatedPhases[phaseIndex] = currentPhase;
+  
+        if (updates.extendFuturePhases && updates.extend > 0) {
+          for (let i = phaseIndex + 1; i < updatedPhases.length; i++) {
+            const phase: PhaseView = {
+              ...updatedPhases[i],
+              tasks: [...updatedPhases[i].tasks],
+              materials: [...updatedPhases[i].materials],
+              notes: [...updatedPhases[i].notes],
+            };
+  
+            phase.tasks = phase.tasks.map((task) => {
+              const newDate = formatToDateString(
+                addBusinessDays(
+                  createLocalDate(task.task_startdate),
+                  updates.extend
+                )
+              );
+  
+              return {
+                ...task,
+                task_startdate: newDate,
+              };
+            });
+  
+            phase.materials = phase.materials.map((material) => {
+              const newDate = formatToDateString(
+                addBusinessDays(
+                  createLocalDate(material.material_duedate),
+                  updates.extend
+                )
+              );
+  
+              return {
+                ...material,
+                material_duedate: newDate,
+              };
+            });
+  
+            phase.startDate = getEarliestDate(phase.tasks, phase.materials);
+            phase.endDate = getLatestDate(phase.tasks, phase.materials);
+            updatedPhases[i] = phase;
+          }
+        }
+  
+        updatedPhase = currentPhase;
+        otherUpdatedPhases = updates.extendFuturePhases
+          ? updatedPhases.slice(phaseIndex + 1)
+          : [];
+  
+        return {
+          ...prevJob,
+          phases: updatedPhases,
+        };
+      });
+  
+      if (!updatedPhase) {
+        throw new Error("Failed to update phase: Phase data is null");
+      }
+  
+      const phase = updatedPhase as PhaseView;
+  
+      await fetch(`/api/jobs/${params.id}/phases/${phaseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: phase.name,
+          startDate: phase.startDate,
+          extend: updates.extend,
+          extendFuturePhases: updates.extendFuturePhases,
+          daysDiff: updates.daysDiff
+        }),
+      });
+  
+      // Add page reload after successful update
+      window.location.reload();
+  
+    } catch (error) {
+      console.error("Error updating phase:", error);
+      throw error;
+    }
   };
 
   const handleTaskDelete = async (taskId: number) => {
@@ -85,56 +313,83 @@ export default function JobDetailPage() {
       const response = await fetch(`/api/jobs/${id}/tasks/${taskId}`, {
         method: "DELETE",
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to delete task");
       }
-  
+
       setJob((prevJob) => {
         if (!prevJob) return null;
-  
+
+        const phaseWithTask = prevJob.phases.find((phase) =>
+          phase.tasks.some((task) => task.task_id === taskId)
+        );
+
+        if (!phaseWithTask) {
+          console.error("Task not found in any phase");
+          return prevJob;
+        }
+
         const updatedPhases = prevJob.phases.map((phase) => {
-          const updatedTasks = phase.tasks.filter(
-            (task) => task.task_id !== taskId
-          );
-  
-          // Use createLocalDate instead of new Date()
-          let phaseStart = new Date();
-          if (updatedTasks.length > 0) {
-            phaseStart = createLocalDate(updatedTasks[0].task_startdate);
-          } else if (phase.materials.length > 0) {
-            phaseStart = createLocalDate(phase.materials[0].material_duedate);
+          if (phase.id === phaseWithTask.id) {
+            const updatedTasks = phase.tasks.filter(
+              (task) => task.task_id !== taskId
+            );
+
+            let phaseStart =
+              phase.tasks.length > 0
+                ? createLocalDate(phase.tasks[0].task_startdate)
+                : phase.materials.length > 0
+                ? createLocalDate(phase.materials[0].material_duedate)
+                : new Date();
+
+            let phaseEnd = new Date(phaseStart);
+
+            updatedTasks.forEach((task) => {
+              const taskStart = createLocalDate(task.task_startdate);
+              const taskEnd = createLocalDate(task.task_startdate);
+              taskEnd.setDate(taskEnd.getDate() + task.task_duration);
+
+              if (taskStart < phaseStart) phaseStart = taskStart;
+              if (taskEnd > phaseEnd) phaseEnd = taskEnd;
+            });
+
+            phase.materials.forEach((material) => {
+              const materialDate = createLocalDate(material.material_duedate);
+              if (materialDate < phaseStart) phaseStart = materialDate;
+              if (materialDate > phaseEnd) phaseEnd = materialDate;
+            });
+
+            const newStartDate = formatToDateString(phaseStart);
+            const newEndDate = formatToDateString(phaseEnd);
+
+            if (newStartDate !== phase.startDate) {
+              fetch(`/api/jobs/${id}/phases/${phase.id}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  startDate: newStartDate,
+                }),
+              }).catch((error) => {
+                console.error("Error updating phase dates:", error);
+              });
+            }
+
+            return {
+              ...phase,
+              tasks: updatedTasks,
+              startDate: newStartDate,
+              endDate: newEndDate,
+            };
           }
-  
-          let phaseEnd = new Date(phaseStart);
-  
-          // Use createLocalDate for all date comparisons
-          updatedTasks.forEach((task) => {
-            const taskStart = createLocalDate(task.task_startdate);
-            const taskEnd = createLocalDate(task.task_startdate);
-            taskEnd.setDate(taskEnd.getDate() + task.task_duration);
-  
-            if (taskStart < phaseStart) phaseStart = taskStart;
-            if (taskEnd > phaseEnd) phaseEnd = taskEnd;
-          });
-  
-          phase.materials.forEach((material) => {
-            const materialDate = createLocalDate(material.material_duedate);
-            if (materialDate < phaseStart) phaseStart = materialDate;
-            if (materialDate > phaseEnd) phaseEnd = materialDate;
-          });
-  
-          return {
-            ...phase,
-            tasks: updatedTasks,
-            startDate: formatToDateString(phaseStart),  // Use formatToDateString instead of toISOString
-            endDate: formatToDateString(phaseEnd),
-          };
+          return phase;
         });
-  
+
         const newStatusCounts = calculateStatusCounts(updatedPhases);
         const newDateRange = calculateDateRange(updatedPhases);
-  
+
         return {
           ...prevJob,
           phases: updatedPhases,
@@ -161,45 +416,72 @@ export default function JobDetailPage() {
       setJob((prevJob) => {
         if (!prevJob) return null;
 
+        const phaseWithMaterial = prevJob.phases.find((phase) =>
+          phase.materials.some(
+            (material) => material.material_id === materialId
+          )
+        );
+
+        if (!phaseWithMaterial) {
+          console.error("Material not found in any phase");
+          return prevJob;
+        }
+
         const updatedPhases = prevJob.phases.map((phase) => {
-          const updatedMaterials = phase.materials.filter(
-            (material) => material.material_id !== materialId
-          );
+          if (phase.id === phaseWithMaterial.id) {
+            const updatedMaterials = phase.materials.filter(
+              (material) => material.material_id !== materialId
+            );
 
-          // Find earliest start date from tasks and materials
-          let phaseStart = new Date();
-          // Initialize with first task or material date if exists
-          if (phase.tasks.length > 0) {
-            phaseStart = new Date(phase.tasks[0].task_startdate);
-          } else if (updatedMaterials.length > 0) {
-            phaseStart = new Date(updatedMaterials[0].material_duedate);
+            let phaseStart =
+              phase.tasks.length > 0
+                ? createLocalDate(phase.tasks[0].task_startdate)
+                : updatedMaterials.length > 0
+                ? createLocalDate(updatedMaterials[0].material_duedate)
+                : new Date();
+
+            let phaseEnd = new Date(phaseStart);
+
+            phase.tasks.forEach((task) => {
+              const taskStart = createLocalDate(task.task_startdate);
+              const taskEnd = createLocalDate(task.task_startdate);
+              taskEnd.setDate(taskEnd.getDate() + task.task_duration);
+
+              if (taskStart < phaseStart) phaseStart = taskStart;
+              if (taskEnd > phaseEnd) phaseEnd = taskEnd;
+            });
+
+            updatedMaterials.forEach((material) => {
+              const materialDate = createLocalDate(material.material_duedate);
+              if (materialDate < phaseStart) phaseStart = materialDate;
+              if (materialDate > phaseEnd) phaseEnd = materialDate;
+            });
+
+            const newStartDate = formatToDateString(phaseStart);
+            const newEndDate = formatToDateString(phaseEnd);
+
+            if (newStartDate !== phase.startDate) {
+              fetch(`/api/jobs/${id}/phases/${phase.id}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  startDate: newStartDate,
+                }),
+              }).catch((error) => {
+                console.error("Error updating phase dates:", error);
+              });
+            }
+
+            return {
+              ...phase,
+              materials: updatedMaterials,
+              startDate: newStartDate,
+              endDate: newEndDate,
+            };
           }
-
-          let phaseEnd = new Date(phaseStart);
-
-          // Check all tasks
-          phase.tasks.forEach((task) => {
-            const taskStart = new Date(task.task_startdate);
-            const taskEnd = new Date(task.task_startdate);
-            taskEnd.setDate(taskEnd.getDate() + task.task_duration);
-
-            if (taskStart < phaseStart) phaseStart = taskStart;
-            if (taskEnd > phaseEnd) phaseEnd = taskEnd;
-          });
-
-          // Check all materials
-          updatedMaterials.forEach((material) => {
-            const materialDate = new Date(material.material_duedate);
-            if (materialDate < phaseStart) phaseStart = materialDate;
-            if (materialDate > phaseEnd) phaseEnd = materialDate;
-          });
-
-          return {
-            ...phase,
-            materials: updatedMaterials,
-            startDate: phaseStart.toISOString().split("T")[0],
-            endDate: phaseEnd.toISOString().split("T")[0],
-          };
+          return phase;
         });
 
         const newStatusCounts = calculateStatusCounts(updatedPhases);
@@ -275,15 +557,15 @@ export default function JobDetailPage() {
         },
         body: JSON.stringify({ id, type, newStatus }),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to update status");
       }
-  
+
       // Update local state
       setJob((prevJob) => {
         if (!prevJob) return null;
-  
+
         // Update tasks or materials in all phases
         const updatedPhases = prevJob.phases.map((phase) => ({
           ...phase,
@@ -304,23 +586,27 @@ export default function JobDetailPage() {
                 )
               : phase.materials,
         }));
-  
+
         // Update the overall tasks and materials arrays
-        const updatedTasks = type === "task" 
-          ? prevJob.tasks.map((task) =>
-              task.task_id === id ? { ...task, task_status: newStatus } : task
-            )
-          : prevJob.tasks;
-  
-        const updatedMaterials = type === "material"
-          ? prevJob.materials.map((material) =>
-              material.material_id === id ? { ...material, material_status: newStatus } : material
-            )
-          : prevJob.materials;
-  
+        const updatedTasks =
+          type === "task"
+            ? prevJob.tasks.map((task) =>
+                task.task_id === id ? { ...task, task_status: newStatus } : task
+              )
+            : prevJob.tasks;
+
+        const updatedMaterials =
+          type === "material"
+            ? prevJob.materials.map((material) =>
+                material.material_id === id
+                  ? { ...material, material_status: newStatus }
+                  : material
+              )
+            : prevJob.materials;
+
         // Recalculate all status counts
         const newStatusCounts = calculateStatusCounts(updatedPhases);
-        
+
         return {
           ...prevJob,
           phases: updatedPhases,
@@ -337,42 +623,44 @@ export default function JobDetailPage() {
   const handleNoteDelete = async (phaseId: number, noteTimestamp: string) => {
     try {
       const response = await fetch(`/api/jobs/${id}/phases/${phaseId}/notes`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ created_at: noteTimestamp }),
       });
-  
+
       if (!response.ok) {
-        throw new Error('Failed to delete note');
+        throw new Error("Failed to delete note");
       }
-  
+
       // Update local state
       setJob((prevJob) => {
         if (!prevJob) return null;
-  
+
         const updatedPhases = prevJob.phases.map((phase) => {
           if (phase.id === phaseId) {
             return {
               ...phase,
-              notes: phase.notes.filter((note) => note.created_at !== noteTimestamp),
+              notes: phase.notes.filter(
+                (note) => note.created_at !== noteTimestamp
+              ),
             };
           }
           return phase;
         });
-  
+
         return {
           ...prevJob,
           phases: updatedPhases,
         };
       });
     } catch (error) {
-      console.error('Error deleting note:', error);
+      console.error("Error deleting note:", error);
       throw error;
     }
   };
-  
+
   const handleTaskCreate = async (phaseId: number, newTask: FormTask) => {
     try {
       const response = await fetch(`/api/jobs/${id}/phases/${phaseId}/tasks`, {
@@ -382,16 +670,16 @@ export default function JobDetailPage() {
         },
         body: JSON.stringify(newTask),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to create task");
       }
-  
+
       const createdTask = await response.json();
-  
+
       setJob((prevJob) => {
         if (!prevJob) return null;
-  
+
         const updatedPhases = prevJob.phases.map((phase) => {
           if (phase.id === phaseId) {
             // Add new task and sort
@@ -400,16 +688,16 @@ export default function JobDetailPage() {
                 new Date(a.task_startdate).getTime() -
                 new Date(b.task_startdate).getTime()
             );
-  
+
             // Calculate new phase end date
             let latestEndDate = new Date(phase.startDate);
-  
+
             // Check all tasks
             updatedTasks.forEach((task) => {
               const taskStart = new Date(task.task_startdate);
               let taskEnd = new Date(taskStart);
               let daysToAdd = task.task_duration;
-              
+
               // Skip weekends when calculating task end date
               while (daysToAdd > 0) {
                 taskEnd.setDate(taskEnd.getDate() + 1);
@@ -417,12 +705,12 @@ export default function JobDetailPage() {
                   daysToAdd--;
                 }
               }
-  
+
               if (taskEnd > latestEndDate) {
                 latestEndDate = taskEnd;
               }
             });
-  
+
             // Check all materials
             phase.materials.forEach((material) => {
               const materialDate = new Date(material.material_duedate);
@@ -430,7 +718,7 @@ export default function JobDetailPage() {
                 latestEndDate = materialDate;
               }
             });
-  
+
             return {
               ...phase,
               tasks: updatedTasks,
@@ -439,10 +727,10 @@ export default function JobDetailPage() {
           }
           return phase;
         });
-  
+
         const newStatusCounts = calculateStatusCounts(updatedPhases);
         const newDateRange = calculateDateRange(updatedPhases);
-  
+
         return {
           ...prevJob,
           phases: updatedPhases,
@@ -450,33 +738,39 @@ export default function JobDetailPage() {
           ...newStatusCounts,
         };
       });
-  
+
       return createdTask;
     } catch (error) {
       console.error("Error creating task:", error);
       throw error;
     }
   };
-  
-  const handleMaterialCreate = async (phaseId: number, newMaterial: FormMaterial) => {
+
+  const handleMaterialCreate = async (
+    phaseId: number,
+    newMaterial: FormMaterial
+  ) => {
     try {
-      const response = await fetch(`/api/jobs/${id}/phases/${phaseId}/materials`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newMaterial),
-      });
-  
+      const response = await fetch(
+        `/api/jobs/${id}/phases/${phaseId}/materials`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newMaterial),
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Failed to create material");
       }
-  
+
       const createdMaterial = await response.json();
-  
+
       setJob((prevJob) => {
         if (!prevJob) return null;
-  
+
         const updatedPhases = prevJob.phases.map((phase) => {
           if (phase.id === phaseId) {
             // Add new material and sort
@@ -485,28 +779,28 @@ export default function JobDetailPage() {
                 new Date(a.material_duedate).getTime() -
                 new Date(b.material_duedate).getTime()
             );
-  
+
             // Calculate new phase end date
             let latestEndDate = new Date(phase.startDate);
-  
+
             // Check all tasks
             phase.tasks.forEach((task) => {
               const taskStart = new Date(task.task_startdate);
               let taskEnd = new Date(taskStart);
               let daysToAdd = task.task_duration;
-              
+
               while (daysToAdd > 0) {
                 taskEnd.setDate(taskEnd.getDate() + 1);
                 if (taskEnd.getDay() !== 0 && taskEnd.getDay() !== 6) {
                   daysToAdd--;
                 }
               }
-  
+
               if (taskEnd > latestEndDate) {
                 latestEndDate = taskEnd;
               }
             });
-  
+
             // Check all materials
             updatedMaterials.forEach((material) => {
               const materialDate = new Date(material.material_duedate);
@@ -514,7 +808,7 @@ export default function JobDetailPage() {
                 latestEndDate = materialDate;
               }
             });
-  
+
             return {
               ...phase,
               materials: updatedMaterials,
@@ -523,10 +817,10 @@ export default function JobDetailPage() {
           }
           return phase;
         });
-  
+
         const newStatusCounts = calculateStatusCounts(updatedPhases);
         const newDateRange = calculateDateRange(updatedPhases);
-  
+
         return {
           ...prevJob,
           phases: updatedPhases,
@@ -534,7 +828,7 @@ export default function JobDetailPage() {
           ...newStatusCounts,
         };
       });
-  
+
       return createdMaterial;
     } catch (error) {
       console.error("Error creating material:", error);
@@ -872,6 +1166,8 @@ export default function JobDetailPage() {
               onTaskCreate={handleTaskCreate}
               onMaterialCreate={handleMaterialCreate}
               onNoteDelete={handleNoteDelete}
+              jobStartDate={job.job_startdate}
+              onPhaseUpdate={handlePhaseUpdate}
             />
           );
         })}
@@ -880,22 +1176,19 @@ export default function JobDetailPage() {
   };
 
   const defaultFloorplans = Array(5)
-  .fill({
-    url: "/placeholder-floorplan.jpg",
-    name: "Sample Floorplan",
-  })
-  .map((plan, index) => ({
-    ...plan,
-    name: `Sample Floorplan ${index + 1}`,
-  }));
+    .fill({
+      url: "/placeholder-floorplan.jpg",
+      name: "Sample Floorplan",
+    })
+    .map((plan, index) => ({
+      ...plan,
+      name: `Sample Floorplan ${index + 1}`,
+    }));
 
   const renderFloorPlan = () => {
     return (
       <CardFrame>
-        <FloorplanViewer 
-          floorplans={defaultFloorplans} 
-          mode="embedded" 
-        />
+        <FloorplanViewer floorplans={defaultFloorplans} mode="embedded" />
       </CardFrame>
     );
   };

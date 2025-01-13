@@ -169,6 +169,7 @@ export interface TaskUpdatePayload {
   task_description?: string;
   extension_days?: number;
   new_users?: number[];
+  pushDates?: boolean;
 }
 
 export interface MaterialUpdatePayload {

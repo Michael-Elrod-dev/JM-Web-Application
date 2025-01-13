@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/app/lib/db';
 import { MaterialUpdatePayload } from '@/app/types/database';
+import { addBusinessDays } from '@/app/utils';
 import { RowDataPacket } from 'mysql2';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -59,11 +60,25 @@ export async function PATCH(
     }
 
     if (body.extension_days && !isNaN(body.extension_days)) {
+      // Get current material date
+      const [currentMaterial] = await connection.query<RowDataPacket[]>(
+        'SELECT material_duedate FROM material WHERE material_id = ?',
+        [materialId]
+      );
+    
+      if (currentMaterial.length > 0) {
+        // Calculate new date using addBusinessDays
+        const currentDate = new Date(currentMaterial[0].material_duedate);
+        const newDate = addBusinessDays(currentDate, body.extension_days);
+        const formattedNewDate = newDate.toISOString().split('T')[0];
+    
+        // Update with exact new date
         await connection.query(
-          'UPDATE material SET material_duedate = DATE_ADD(material_duedate, INTERVAL ? DAY) WHERE material_id = ?',
-          [body.extension_days, materialId]
+          'UPDATE material SET material_duedate = ? WHERE material_id = ?',
+          [formattedNewDate, materialId]
         );
-      }      
+      }
+    }
 
     // Handle user assignments
     if (body.new_users) {
@@ -76,10 +91,10 @@ export async function PATCH(
       const currentUserIds = new Set(currentUsers.map(u => u.user_id));
       const newUserIds = new Set(body.new_users);
       
-      // Users to remove (in current but not in new)
+      // Users to remove
       const usersToRemove = Array.from(currentUserIds).filter(id => !newUserIds.has(id));
       
-      // Users to add (in new but not in current)
+      // Users to add
       const usersToAdd = Array.from(newUserIds).filter(id => !currentUserIds.has(id));
 
       // Verify all new users exist

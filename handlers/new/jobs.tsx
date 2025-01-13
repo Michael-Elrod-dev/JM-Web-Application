@@ -75,8 +75,6 @@ export const handleCreateJob = async (
     const tempId = Date.now().toString();
     const currentDate = new Date();
     const localCurrentBusinessDate = getCurrentBusinessDate(currentDate);
-    const currentBusinessDate = formatToDateString(localCurrentBusinessDate);
-    console.log("Initial currentBusinessDate string:", currentBusinessDate);
 
     const processedPhases: FormPhase[] = phases.map(
       (phase: FormPhase, phaseIndex: number) => {
@@ -93,9 +91,6 @@ export const handleCreateJob = async (
             task.offset === 0
               ? baseDate
               : addBusinessDays(baseDate, task.offset);
-              console.log("For task:", task.title);
-              console.log("Input date:", new Date(currentBusinessDate).toString());
-              console.log("Result date:", taskStartDate.toString());
 
           return {
             ...task,
@@ -170,23 +165,26 @@ export const handlePhaseUpdate = (
       startDate: newStartDate
     };
     
-    // Handle extending future phases
+    // Handle pushing future phases forward
     if (extend && extendFuturePhases) {
       for (let i = phaseIndex + 1; i < newPhases.length; i++) {
         const phase = newPhases[i];
         
-        const extendedStartDate = formatToDateString(
+        // Push the phase start date forward
+        const pushedStartDate = formatToDateString(
           addBusinessDays(createLocalDate(phase.startDate), extend)
         );
         
-        const updatedTasks = phase.tasks.map(task => ({
+        // Push all tasks forward without extending their duration
+        const pushedTasks = phase.tasks.map(task => ({
           ...task,
           startDate: formatToDateString(
             addBusinessDays(createLocalDate(task.startDate), extend)
           )
         }));
         
-        const updatedMaterials = phase.materials.map(material => ({
+        // Push all materials forward
+        const pushedMaterials = phase.materials.map(material => ({
           ...material,
           dueDate: formatToDateString(
             addBusinessDays(createLocalDate(material.dueDate), extend)
@@ -195,9 +193,9 @@ export const handlePhaseUpdate = (
         
         newPhases[i] = {
           ...phase,
-          startDate: extendedStartDate,
-          tasks: updatedTasks,
-          materials: updatedMaterials
+          startDate: pushedStartDate,
+          tasks: pushedTasks,
+          materials: pushedMaterials
         };
       }
     }
