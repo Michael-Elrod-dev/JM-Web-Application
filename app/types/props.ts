@@ -97,6 +97,7 @@ export interface DetailPhaseCardProps {
       }>;
     }
   ) => Promise<void>;
+  userType?: string;
 }
 
 export interface PhaseCardProps {
@@ -107,7 +108,7 @@ export interface PhaseCardProps {
   onAddPhaseAfter: (phaseId: string) => void;
   onMovePhase: (direction: "up" | "down" | "future", amount?: number) => void;
   contacts: UserView[];
-  onPhaseUpdate: (phaseId: number, updates: {
+  onPhaseUpdate?: (phaseId: number, updates: {
     title: string;
     startDate: string;
     extend: number;

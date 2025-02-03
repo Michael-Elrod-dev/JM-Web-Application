@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -10,7 +10,6 @@ import PhaseCard from "../../../components/new/NewPhaseCard";
 import { InvalidItemProp } from "@/app/types/props";
 import { FormPhase, User } from "@/app/types/database";
 import { PhaseView, TaskView, MaterialView } from "../../types/views";
-import { createJob, transformFormDataToNewJob } from "../../../handlers/jobs";
 import {
   createLocalDate,
   formatToDateString,
@@ -25,6 +24,14 @@ import {
 } from "../../../handlers/new/jobs";
 
 export default function NewJobPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewJobContent />
+    </Suspense>
+  );
+}
+
+function NewJobContent() {
   type JobType = string;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,6 +52,7 @@ export default function NewJobPage() {
     jobLocation: "",
     description: "",
     selectedClient: null as { user_id: number } | null,
+    floorPlans: [] as File[]
   });
 
   useEffect(() => {
@@ -299,30 +307,23 @@ export default function NewJobPage() {
   const handleSubmitJob = async () => {
     try {
       setIsSubmitting(true);
-
+  
       // Check job title first
       if (!jobDetails.jobTitle?.trim()) {
-        const jobDetailsElement = document.getElementById(
-          "job-details-section"
-        );
+        const jobDetailsElement = document.getElementById("job-details-section");
         if (jobDetailsElement) {
-          jobDetailsElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
+          jobDetailsElement.scrollIntoView({ behavior: "smooth", block: "center" });
         }
         setJobDetailsErrors({ jobTitle: "Job title is required" });
         throw new Error("Job title is required");
       }
-
+  
       // Then check for invalid items in phases
       const invalidItem = findFirstInvalidItem(phases);
       if (invalidItem) {
-        // Expand the phase containing the invalid item
         const updatedPhases = [...phases];
         const phase = updatedPhases[invalidItem.phaseIndex];
-
-        // Expand the specific item
+  
         if (invalidItem.type === "task") {
           phase.tasks[invalidItem.itemIndex].isExpanded = true;
         } else if (invalidItem.type === "material") {
@@ -330,66 +331,124 @@ export default function NewJobPage() {
         } else if (invalidItem.type === "note") {
           phase.notes[invalidItem.itemIndex].isExpanded = true;
         }
-
+  
         setPhases(updatedPhases);
-
-        // Scroll to the element
+  
         setTimeout(() => {
           const element = document.getElementById(invalidItem.elementId);
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
           }
         }, 100);
-
-        throw new Error(
-          `Please complete all required fields for ${invalidItem.type}`
-        );
+  
+        throw new Error(`Please complete all required fields for ${invalidItem.type}`);
       }
-
+  
       if (!startDate) {
         throw new Error("Start date is required");
       }
-
-      const formData = {
-        jobTitle: jobDetails.jobTitle.trim(),
-        startDate,
-        jobLocation: jobDetails.jobLocation?.trim() || "",
-        description: jobDetails.description?.trim() || "",
-        selectedClient: jobDetails.selectedClient,
-        phases: phases.map((phase) => ({
+  
+      // Create job first
+      const jobFormData = new FormData();
+      
+      // Append basic job details
+      jobFormData.append('jobTitle', jobDetails.jobTitle.trim());
+      jobFormData.append('startDate', startDate);
+      jobFormData.append('jobLocation', jobDetails.jobLocation?.trim() || '');
+      jobFormData.append('description', jobDetails.description?.trim() || '');
+  
+      if (jobDetails.selectedClient) {
+        jobFormData.append('client', JSON.stringify(jobDetails.selectedClient));
+      }
+      
+      if (jobDetails.floorPlans && jobDetails.floorPlans.length > 0) {
+        jobDetails.floorPlans.forEach((file) => {
+          jobFormData.append('floorPlans', file);
+        });
+      }
+  
+      const jobResponse = await fetch('/api/jobs/new', {
+        method: 'POST',
+        body: jobFormData
+      });
+  
+      const jobResponseText = await jobResponse.text();
+  
+      if (!jobResponse.ok) {
+        try {
+          const error = JSON.parse(jobResponseText);
+          throw new Error(error.message || 'Failed to create job');
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          throw new Error(`Server error: ${jobResponseText}`);
+        }
+      }
+  
+      let jobData;
+      try {
+        jobData = JSON.parse(jobResponseText);
+      } catch (parseError) {
+        console.error('Failed to parse success response:', parseError);
+        throw new Error('Invalid response from server');
+      }
+  
+      if (!jobData.jobId) {
+        throw new Error("Failed to get job ID from server");
+      }
+  
+      // Now create phases one at a time
+      for (const phase of phases) {
+        const transformedPhase = {
           title: phase.title.trim(),
           startDate: phase.startDate,
-          description: phase.description?.trim() || "",
-          tasks: phase.tasks.map((task) => ({
+          description: phase.description?.trim() || '',
+          tasks: phase.tasks.map(task => ({
             title: task.title.trim(),
             startDate: task.startDate,
             duration: task.duration.toString(),
-            details: task.details?.trim() || "",
-            selectedContacts: task.selectedContacts || [],
+            details: task.details?.trim() || '',
+            assignedUsers: task.selectedContacts?.map(contact => parseInt(contact.id)) || []
           })),
-          materials: phase.materials.map((material) => ({
-            ...material,
+          materials: phase.materials.map(material => ({
             title: material.title.trim(),
-            details: material.details?.trim() || "",
-            selectedContacts: material.selectedContacts || [],
+            dueDate: material.dueDate,
+            details: material.details?.trim() || '',
+            assignedUsers: material.selectedContacts?.map(contact => parseInt(contact.id)) || []
           })),
-          notes: phase.notes.map((note) => ({
-            ...note,
-            content: note.content.trim(),
-          })),
-        })),
-      };
-
-      const jobData = transformFormDataToNewJob(formData);
-      const response = await createJob(jobData);
-
-      if (!response.jobId) {
-        throw new Error("Failed to get job ID from server");
+          notes: phase.notes.map(note => ({
+            content: note.content.trim()
+          }))
+        };
+  
+        const phaseFormData = new FormData();
+        phaseFormData.append('phase', JSON.stringify(transformedPhase));
+  
+        const phaseResponse = await fetch(`/api/jobs/${jobData.jobId}/phases`, {
+          method: 'POST',
+          body: phaseFormData
+        });
+  
+        if (!phaseResponse.ok) {
+          const phaseErrorText = await phaseResponse.text();
+          throw new Error(`Failed to create phase: ${phaseErrorText}`);
+        }
+  
       }
-
-      router.push(`/jobs/${response.jobId}`);
-    } catch (error) {
-      console.error("Error creating job:", error);
+  
+      router.push(`/jobs/${jobData.jobId}`);
+      
+    } catch (err: unknown) {
+      console.error("Error creating job:", {
+        error: err instanceof Error ? {
+          message: err.message,
+          stack: err.stack
+        } : err,
+      });
+      setIsSubmitting(false);
+      if (err instanceof Error) {
+        console.error(err.message);
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -576,12 +635,14 @@ export default function NewJobPage() {
               jobLocation,
               description,
               selectedClient,
+              floorPlans,
             }) => {
               setJobDetails({
                 jobTitle,
                 jobLocation: jobLocation || "",
                 description: description || "",
                 selectedClient: selectedClient || null,
+                floorPlans: floorPlans || []
               });
               setJobDetailsErrors({});
             }}
