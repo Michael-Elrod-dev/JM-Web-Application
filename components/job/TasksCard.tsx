@@ -2,7 +2,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import SmallCardFrame from "../util/SmallCardFrame";
 import StatusButton from "./StatusButton";
-import { formatPhoneNumber, createLocalDate, addBusinessDays } from "../../app/utils";
+import {
+  formatPhoneNumber,
+  createLocalDate,
+  addBusinessDays,
+} from "../../app/utils";
 import { TaskView, UserView } from "../../app/types/views";
 import { TaskUpdatePayload } from "@/app/types/database";
 
@@ -15,6 +19,7 @@ interface TasksCardProps {
     newStatus: string
   ) => void;
   onDelete: (id: number) => Promise<void>;
+  userType?: string;
 }
 
 const TasksCard: React.FC<TasksCardProps> = ({
@@ -22,6 +27,7 @@ const TasksCard: React.FC<TasksCardProps> = ({
   contacts,
   onStatusUpdate,
   onDelete,
+  userType,
 }) => {
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [localTasks, setLocalTasks] = useState(tasks);
@@ -30,8 +36,11 @@ const TasksCard: React.FC<TasksCardProps> = ({
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const sortedTasks = [...tasks].sort((a, b) => 
-    new Date(a.task_startdate).getTime() - new Date(b.task_startdate).getTime()
+  const hasAdminAccess = userType === "Owner" || userType === "Admin";
+  const sortedTasks = [...tasks].sort(
+    (a, b) =>
+      new Date(a.task_startdate).getTime() -
+      new Date(b.task_startdate).getTime()
   );
 
   useEffect(() => {
@@ -79,7 +88,7 @@ const TasksCard: React.FC<TasksCardProps> = ({
       if (isNaN(start.getTime())) {
         throw new Error("Invalid start date");
       }
-      
+
       // For duration 0 or 1, just show the single date
       if (duration <= 1) {
         return start.toLocaleDateString("en-US", {
@@ -87,10 +96,10 @@ const TasksCard: React.FC<TasksCardProps> = ({
           day: "numeric",
         });
       }
-    
+
       // For longer durations, use addBusinessDays from utils
       const end = addBusinessDays(start, duration - 1);
-    
+
       return `${start.toLocaleDateString("en-US", {
         month: "numeric",
         day: "numeric",
@@ -205,17 +214,27 @@ const TasksCard: React.FC<TasksCardProps> = ({
                   onClick={(e) => handleCardClick(e, task.task_id)}
                   className="cursor-pointer"
                 >
-                  <div className="grid grid-cols-3 items-center">
-                    <span className="text-sm font-medium col-span-1">
-                      {task.task_title}
-                    </span>
-                    <span className="text-sm text-center col-span-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 items-start gap-3">
+                    <div className="col-span-2 sm:col-span-1 pr-3">
+                      <div className="flex flex-col sm:block">
+                        <span className="text-sm font-medium break-words">
+                          {task.task_title}
+                        </span>
+                        <span className="text-sm text-gray-600 sm:hidden mt-1">
+                          {calculateDateRange(
+                            task.task_startdate,
+                            task.task_duration
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="hidden sm:block text-sm text-center col-span-1">
                       {calculateDateRange(
                         task.task_startdate,
                         task.task_duration
                       )}
                     </span>
-                    <div className="flex justify-end col-span-1">
+                    <div className="col-span-1 flex justify-end">
                       <div className="status-button">
                         <StatusButton
                           id={task.task_id}
@@ -229,7 +248,7 @@ const TasksCard: React.FC<TasksCardProps> = ({
                     </div>
                   </div>
 
-                  {isExpanded && (
+                  {expandedTaskId === task.task_id && (
                     <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-600">
                       {task.task_description && (
                         <div className="mb-4">
@@ -241,7 +260,6 @@ const TasksCard: React.FC<TasksCardProps> = ({
                           </SmallCardFrame>
                         </div>
                       )}
-
                       {task.users && task.users.length > 0 && (
                         <div className="space-y-2">
                           <h5 className="text-sm font-medium mb-2">
@@ -249,14 +267,14 @@ const TasksCard: React.FC<TasksCardProps> = ({
                           </h5>
                           {task.users.map((user) => (
                             <SmallCardFrame key={user.user_id}>
-                              <div className="grid grid-cols-3 items-center">
-                                <span className="text-sm">
+                              <div className="flex flex-col sm:grid sm:grid-cols-3 sm:items-center gap-1 sm:gap-0">
+                                <span className="text-sm font-medium">
                                   {`${user.first_name} ${user.last_name}`}
                                 </span>
-                                <span className="text-sm text-center">
+                                <span className="text-sm text-gray-600 sm:text-center">
                                   {formatPhoneNumber(user.user_phone)}
                                 </span>
-                                <span className="text-sm text-right">
+                                <span className="text-sm text-gray-600 sm:text-right break-all">
                                   {user.user_email}
                                 </span>
                               </div>
@@ -266,15 +284,17 @@ const TasksCard: React.FC<TasksCardProps> = ({
                       )}
 
                       <div className="mt-4 flex justify-end">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveModal(task.task_id);
-                          }}
-                          className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors"
-                        >
-                          Edit
-                        </button>
+                        {hasAdminAccess && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveModal(task.task_id);
+                            }}
+                            className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}

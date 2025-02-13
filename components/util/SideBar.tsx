@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FaCirclePlus } from "react-icons/fa6";
 import { FaBriefcase, FaCalendar, FaAddressBook, FaCog } from "react-icons/fa";
@@ -77,17 +76,17 @@ const SideBar = () => {
         <Link href="/contacts" className="text-zinc-300 hover:text-white">
           <FaAddressBook size={24} />
         </Link>
+        {canCreateJobs && (
+          <Link href="/jobs/new" className="text-zinc-300 hover:text-white">
+            <FaCirclePlus size={24} />
+          </Link>
+        )}
         <button
           onClick={() => router.push("/settings")}
           className="text-zinc-300 hover:text-white"
         >
           <FaCog size={24} />
         </button>
-        {canCreateJobs && (
-          <Link href="/jobs/new" className="text-zinc-300 hover:text-white">
-            <FaCirclePlus size={24} />
-          </Link>
-        )}
       </nav>
     </>
   );
